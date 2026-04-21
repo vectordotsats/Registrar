@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #1a6d44;
-  --color-primary-light: #e8f5ee;
-  --color-primary-dark: #0f4d2e;
-  --color-accent: #d4a017;
-  --color-accent-light: #fdf6e3;
+  --color-primary: #6C5CE7;
+  --color-primary-light: #F0EEFF;
+  --color-primary-dark: #5A4BD1;
+  --color-accent: #FF6B6B;
+  --color-accent-light: #FFF0F0;
 }
 
 body {
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
