@@ -60,9 +60,9 @@ export default function ReportsPage() {
           .gt("total_debt", 0)
           .order("total_debt", { ascending: false }),
       ]);
-      setSales((salesRes.data as SaleRecord[]) || []);
-      setSaleItems((itemsRes.data as SaleItemRecord[]) || []);
-      setDebtors((debtorsRes.data as CustomerDebt[]) || []);
+      setSales((salesRes.data as unknown as SaleRecord[]) || []);
+      setSaleItems((itemsRes.data as unknown as SaleItemRecord[]) || []);
+      setDebtors((debtorsRes.data as unknown as CustomerDebt[]) || []);
       setLoading(false);
     };
     load();
