@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira, formatDate } from "@/lib/utils";
-import { Loader2, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { formatNaira } from "@/lib/utils";
+import { Loader2, TrendingUp, TrendingDown, Calendar, X } from "lucide-react";
 
 interface SaleRecord {
   id: string;
@@ -30,18 +30,22 @@ interface CustomerDebt {
 export default function ReportsPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "all">(
-    "today",
-  );
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
+  const [quickPeriod, setQuickPeriod] = useState<
+    "today" | "week" | "month" | "all" | "custom"
+  >("today");
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItemRecord[]>([]);
   const [debtors, setDebtors] = useState<CustomerDebt[]>([]);
-  const [productCount, setProductCount] = useState(0);
 
   useEffect(() => {
     const load = async () => {
-      const [salesRes, itemsRes, debtorsRes, productsRes] = await Promise.all([
+      const [salesRes, itemsRes, debtorsRes] = await Promise.all([
         supabase
           .from("sales")
           .select("*")
@@ -55,42 +59,64 @@ export default function ReportsPage() {
           .select("name, total_debt")
           .gt("total_debt", 0)
           .order("total_debt", { ascending: false }),
-        supabase.from("products").select("id", { count: "exact", head: true }),
       ]);
       setSales((salesRes.data as SaleRecord[]) || []);
       setSaleItems((itemsRes.data as SaleItemRecord[]) || []);
       setDebtors((debtorsRes.data as CustomerDebt[]) || []);
-      setProductCount(productsRes.count || 0);
       setLoading(false);
     };
     load();
   }, [supabase]);
 
-  // Filter sales by period
-  const now = new Date();
-  const getStartDate = () => {
+  const setQuick = (period: "today" | "week" | "month" | "all") => {
+    setQuickPeriod(period);
+    setShowDatePicker(false);
+    const now = new Date();
+    const td = now.toISOString().split("T")[0];
     if (period === "today") {
-      const d = new Date(now);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    if (period === "week") {
+      setStartDate(td);
+      setEndDate(td);
+    } else if (period === "week") {
       const d = new Date(now);
       d.setDate(d.getDate() - 7);
-      return d;
-    }
-    if (period === "month") {
+      setStartDate(d.toISOString().split("T")[0]);
+      setEndDate(td);
+    } else if (period === "month") {
       const d = new Date(now);
       d.setDate(d.getDate() - 30);
-      return d;
+      setStartDate(d.toISOString().split("T")[0]);
+      setEndDate(td);
+    } else {
+      setStartDate("2020-01-01");
+      setEndDate(td);
     }
-    return new Date(0);
   };
 
-  const startDate = getStartDate();
-  const filteredSales = sales.filter((s) => new Date(s.sale_date) >= startDate);
+  const getDateLabel = () => {
+    if (startDate === endDate) {
+      return new Date(startDate).toLocaleDateString("en-NG", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+    const s = new Date(startDate).toLocaleDateString("en-NG", {
+      day: "numeric",
+      month: "short",
+    });
+    const e = new Date(endDate).toLocaleDateString("en-NG", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    return `${s} — ${e}`;
+  };
 
-  // Revenue stats
+  const filteredSales = sales.filter((s) => {
+    const saleDate = new Date(s.sale_date).toISOString().split("T")[0];
+    return saleDate >= startDate && saleDate <= endDate;
+  });
+
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.amount_paid, 0);
   const totalSalesAmount = filteredSales.reduce(
     (sum, s) => sum + s.total_amount,
@@ -108,12 +134,9 @@ export default function ReportsPage() {
     0,
   );
   const totalDebt = debtors.reduce((sum, d) => sum + d.total_debt, 0);
-
-  // Profit (rough — based on all sales amount vs paid)
   const avgTransactionValue =
     filteredSales.length > 0 ? totalSalesAmount / filteredSales.length : 0;
 
-  // Sales by staff
   const staffSales: Record<string, { count: number; revenue: number }> = {};
   filteredSales.forEach((s) => {
     if (!staffSales[s.sold_by])
@@ -125,7 +148,6 @@ export default function ReportsPage() {
     .map(([name, data]) => ({ name, ...data }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  // Top selling products
   const productSales: Record<
     string,
     { name: string; qty: number; revenue: number }
@@ -158,15 +180,14 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        {/* Period filter */}
+        {/* Period controls */}
         <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-gray-400" />
           {(["today", "week", "month", "all"] as const).map((p) => (
             <button
               key={p}
-              onClick={() => setPeriod(p)}
+              onClick={() => setQuick(p)}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                period === p
+                quickPeriod === p
                   ? "bg-[var(--color-primary)] text-white"
                   : "border border-gray-300 text-gray-600 hover:bg-gray-50"
               }`}
@@ -177,11 +198,69 @@ export default function ReportsPage() {
                   ? "7 days"
                   : p === "month"
                     ? "30 days"
-                    : "All time"}
+                    : "All"}
             </button>
           ))}
+          <button
+            onClick={() => {
+              setShowDatePicker(!showDatePicker);
+              if (!showDatePicker) setQuickPeriod("custom");
+            }}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              quickPeriod === "custom"
+                ? "bg-[var(--color-primary)] text-white"
+                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Calendar size={16} />
+          </button>
         </div>
       </div>
+
+      {/* Custom date picker - slides open */}
+      {showDatePicker && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 font-medium">From</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setQuickPeriod("custom");
+              }}
+              max={endDate}
+              className="px-3 py-2 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent cursor-pointer"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 font-medium">To</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setQuickPeriod("custom");
+              }}
+              min={startDate}
+              max={todayStr}
+              className="px-3 py-2 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent cursor-pointer"
+            />
+          </div>
+          <span className="text-xs text-[var(--color-primary)] font-medium">
+            {getDateLabel()}
+          </span>
+          <button
+            onClick={() => {
+              setShowDatePicker(false);
+              setQuick("today");
+            }}
+            className="ml-auto p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Revenue cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -206,7 +285,7 @@ export default function ReportsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <TrendingDown size={14} className="text-red-500" />
-            <p className="text-xs text-gray-500">Outstanding (period)</p>
+            <p className="text-xs text-gray-500">Outstanding</p>
           </div>
           <p className="text-xl font-bold text-red-600">
             {formatNaira(totalOutstanding)}
@@ -220,7 +299,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Revenue breakdown */}
+      {/* Breakdown */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">Cash sales</p>
@@ -254,7 +333,6 @@ export default function ReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Top products */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 mb-3">
             Top selling products
@@ -292,7 +370,6 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Sales by staff */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 mb-3">
             Sales by staff
@@ -330,7 +407,6 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Top debtors */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 mb-3">
             Top debtors
