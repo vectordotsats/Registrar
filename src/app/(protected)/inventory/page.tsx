@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [userRole, setUserRole] = useState<string>("staff");
 
   const fetchProducts = async () => {
     const { data } = await supabase
@@ -25,6 +26,23 @@ export default function InventoryPage() {
     setProducts(data || []);
     setLoading(false);
   };
+
+  useEffect(() => {
+    const getRole = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        if (data) setUserRole(data.role);
+      }
+    };
+    getRole();
+  }, [supabase]);
 
   useEffect(() => {
     fetchProducts();
@@ -74,12 +92,14 @@ export default function InventoryPage() {
           <p className="text-xs text-gray-500 mb-1">Total products</p>
           <p className="text-xl font-bold text-gray-900">{totalProducts}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Stock value</p>
-          <p className="text-xl font-bold text-gray-900">
-            {formatNaira(totalStockValue)}
-          </p>
-        </div>
+        {userRole === "admin" && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">Stock value</p>
+            <p className="text-xl font-bold text-gray-900">
+              {formatNaira(totalStockValue)}
+            </p>
+          </div>
+        )}
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">Low stock</p>
           <p className="text-xl font-bold text-amber-600">{lowStockCount}</p>
