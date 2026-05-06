@@ -12,13 +12,15 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("role")
+    .select("role, business_id")
     .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
+
+  const businessId = profile?.business_id;
 
   // Parse request body
   const { name, email, password } = await request.json();
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { name, role: "staff" },
+    user_metadata: { name, role: "staff", business_id: businessId },
   });
 
   if (createError) {
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   // Also add to staff_members table for the sales dropdown
-  await supabase.from("staff_members").insert({ name: name.trim() });
+  await supabase.from("staff_members").insert({ name: name.trim(), business_id: businessId });
 
   return NextResponse.json({ success: true, user_id: newUser.user.id });
 }
@@ -76,12 +78,10 @@ export async function DELETE(request: Request) {
 
   const { staff_id, auth_user_id } = await request.json();
 
-  // Delete from staff_members
   if (staff_id) {
     await supabase.from("staff_members").delete().eq("id", staff_id);
   }
 
-  // Optionally delete the auth account too
   if (auth_user_id) {
     const adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { getBusinessId } from "@/lib/utils";
 import {
   Plus,
   Trash2,
@@ -60,6 +61,7 @@ export default function SettingsPage() {
     if (!newName.trim()) return;
     setAdding(true);
     setError("");
+    const businessId = await getBusinessId(supabase);
     const exists = staff.some(
       (s) => s.name.toLowerCase() === newName.trim().toLowerCase(),
     );
@@ -68,9 +70,10 @@ export default function SettingsPage() {
       setAdding(false);
       return;
     }
-    const { error: dbError } = await supabase
-      .from("staff_members")
-      .insert({ name: newName.trim() });
+    const { error: dbError } = await supabase.from("staff_members").insert({
+      business_id: businessId,
+      name: newName.trim(),
+    });
     if (dbError) {
       setError(dbError.message);
     } else {

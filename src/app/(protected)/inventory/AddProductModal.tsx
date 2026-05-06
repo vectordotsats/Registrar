@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { X, Loader2 } from "lucide-react";
+import { getBusinessId } from "@/lib/utils";
 
 const STOCK_UNITS = [
   { label: "Piece", value: 1 },
@@ -54,6 +55,7 @@ export default function AddProductModal({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    const businessId = await getBusinessId(supabase);
 
     if (!form.name.trim()) {
       setError("Product name is required");
@@ -62,6 +64,7 @@ export default function AddProductModal({ onClose, onSuccess }: Props) {
     }
 
     const { error: dbError } = await supabase.from("products").insert({
+      business_id: businessId,
       name: form.name.trim(),
       category: form.category.trim() || "General",
       cost_price: parseFloat(form.cost_price) || 0,

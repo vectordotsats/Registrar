@@ -64,3 +64,15 @@ export function getStockStatus(
   if (quantity <= threshold) return { label: "Low stock", color: "text-amber-600 bg-amber-50" };
   return { label: "In stock", color: "text-green-600 bg-green-50" };
 }
+
+// Get current user's business_id (for client components)
+export async function getBusinessId(supabase: any): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("users")
+    .select("business_id")
+    .eq("id", user.id)
+    .single();
+  return data?.business_id || null;
+}

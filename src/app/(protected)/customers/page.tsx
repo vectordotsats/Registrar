@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira, formatDate } from "@/lib/utils";
+import { formatNaira, formatDate, getBusinessId } from "@/lib/utils";
 import type { Customer } from "@/types";
 import { Search, Plus, Loader2, Users, ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -195,8 +195,10 @@ function AddCustomerModal({
     }
     setLoading(true);
     setError("");
+    const businessId = await getBusinessId(supabase);
 
     const { error: dbError } = await supabase.from("customers").insert({
+      business_id: businessId,
       name: form.name.trim(),
       phone: form.phone.trim(),
       address: form.address.trim(),

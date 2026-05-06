@@ -1,0 +1,331 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase-browser";
+import { useRouter } from "next/navigation";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Building2,
+  Users,
+  ArrowLeft,
+} from "lucide-react";
+
+type Step = "choose" | "register";
+
+export default function RegisterPage() {
+  const [step, setStep] = useState<Step>("choose");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    businessName: "",
+  });
+
+  const updateField = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.password ||
+      !form.businessName.trim()
+    ) {
+      setError("All fields are required");
+      return;
+    }
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    // Create business + admin account via API
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        businessName: form.businessName.trim(),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Failed to create account");
+      setLoading(false);
+      return;
+    }
+
+    // Auto sign in after registration
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+    });
+
+    if (signInError) {
+      setError("Account created! Please go to login page to sign in.");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left panel — branding (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[var(--color-primary)] relative overflow-hidden items-center justify-center">
+        <div className="absolute top-[-80px] right-[-80px] w-64 h-64 rounded-full bg-white/5" />
+        <div className="absolute bottom-[-120px] left-[-60px] w-96 h-96 rounded-full bg-white/5" />
+        <div className="absolute top-1/3 left-1/4 w-32 h-32 rounded-full bg-white/5" />
+
+        <div className="relative z-10 max-w-md px-12">
+          <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
+            <span className="text-white text-3xl font-bold">R</span>
+          </div>
+          <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+            Take control
+            <br />
+            of your business.
+          </h2>
+          <p className="text-white/70 text-lg leading-relaxed">
+            Join thousands of Nigerian businesses tracking inventory, managing
+            credit, and growing smarter with Registrar.
+          </p>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
+        {/* Mobile logo */}
+        <div className="lg:hidden mb-8 text-center">
+          <div className="w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <span className="text-white text-2xl font-bold">R</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Business management made simple
+          </p>
+        </div>
+
+        <div className="w-full max-w-sm">
+          {/* Step 1: Choose role */}
+          {step === "choose" && (
+            <div>
+              <div className="text-center mb-8">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Get started
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  How would you like to use Registrar?
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setStep("register")}
+                  className="w-full bg-white rounded-2xl border-2 border-gray-200 hover:border-[var(--color-primary)] p-5 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center flex-shrink-0 group-hover:bg-[var(--color-primary)] transition-colors">
+                      <Building2
+                        size={22}
+                        className="text-[var(--color-primary)] group-hover:text-white transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-gray-900">
+                        I own a business
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Create your account and start managing your inventory,
+                        sales, and staff
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => router.push("/login")}
+                  className="w-full bg-white rounded-2xl border-2 border-gray-200 hover:border-gray-400 p-5 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
+                      <Users size={22} className="text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-gray-900">
+                        I&apos;m a staff member
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Your admin will create your account. Go to login to sign
+                        in with your details
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <p className="text-center text-sm text-gray-500 mt-6">
+                Already have an account?{" "}
+                <button
+                  onClick={() => router.push("/login")}
+                  className="text-[var(--color-primary)] font-medium hover:underline cursor-pointer"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          )}
+
+          {/* Step 2: Registration form */}
+          {step === "register" && (
+            <div>
+              <button
+                onClick={() => {
+                  setStep("choose");
+                  setError("");
+                }}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  Create your account
+                </h2>
+                <p className="text-sm text-gray-500 mb-8">
+                  Set up your business on Registrar
+                </p>
+
+                <form onSubmit={handleRegister} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business name
+                    </label>
+                    <input
+                      type="text"
+                      value={form.businessName}
+                      onChange={(e) =>
+                        updateField("businessName", e.target.value)
+                      }
+                      placeholder="e.g. Musa Distributors"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => updateField("name", e.target.value)}
+                      placeholder="e.g. Alhaji Musa"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateField("email", e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) =>
+                          updateField("password", e.target.value)
+                        }
+                        placeholder="At least 6 characters"
+                        required
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent pr-12"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                      >
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Creating
+                        your business...
+                      </>
+                    ) : (
+                      "Create account"
+                    )}
+                  </button>
+                </form>
+              </div>
+
+              <p className="text-center text-sm text-gray-500 mt-6">
+                Already have an account?{" "}
+                <button
+                  onClick={() => router.push("/login")}
+                  className="text-[var(--color-primary)] font-medium hover:underline cursor-pointer"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira } from "@/lib/utils";
+import { formatNaira, getBusinessId } from "@/lib/utils";
 import type { Product, Customer } from "@/types";
 import {
   Search,
@@ -187,6 +187,7 @@ export default function NewSalePage() {
 
     setSubmitting(true);
     setError("");
+    const businessId = await getBusinessId(supabase);
 
     const {
       data: { user },
@@ -203,6 +204,7 @@ export default function NewSalePage() {
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
+        business_id: businessId,
         customer_id: saleType === "invoice" ? selectedCustomerId : null,
         created_by: user.id,
         sold_by: soldBy,
@@ -246,6 +248,7 @@ export default function NewSalePage() {
         .eq("id", item.product.id);
 
       await supabase.from("inventory_log").insert({
+        business_id: businessId,
         product_id: item.product.id,
         created_by: user.id,
         logged_by: soldBy,

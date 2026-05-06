@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira, formatDateTime, getStatusColor } from "@/lib/utils";
+import {
+  formatNaira,
+  formatDateTime,
+  getStatusColor,
+  getBusinessId,
+} from "@/lib/utils";
 import type { Customer } from "@/types";
 import {
   ArrowLeft,
@@ -345,6 +350,7 @@ function RecordPaymentModal({
     }
     setLoading(true);
     setError("");
+    const businessId = await getBusinessId(supabase);
 
     const {
       data: { user },
@@ -353,6 +359,7 @@ function RecordPaymentModal({
 
     // Record the payment
     const { error: payError } = await supabase.from("payments").insert({
+      business_id: businessId,
       customer_id: customer.id,
       created_by: user.id,
       recorded_by: form.recorded_by,
