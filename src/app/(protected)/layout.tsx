@@ -18,16 +18,30 @@ export default async function DashboardLayout({
   // Fetch the user's profile from our users table
   const { data: profile } = await supabase
     .from("users")
-    .select("name, role")
-    .eq("id", user.id)
+    .select("name, role, business_id")
+    .eq("id", user?.id)
     .single();
+
+  let businessName = "Registrar";
+  if (profile?.business_id) {
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("name")
+      .eq("id", profile.business_id)
+      .single();
+    if (business) businessName = business.name;
+  }
 
   const userName = profile?.name || user.email || "User";
   const userRole: UserRole = profile?.role || "staff";
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar userName={userName} userRole={userRole} />
+      <Sidebar
+        userName={userName}
+        userRole={userRole}
+        businessName={businessName}
+      />
       <main className="lg:ml-60 min-h-screen">
         <div className="p-4 lg:p-8 pt-16 lg:pt-8">{children}</div>
       </main>

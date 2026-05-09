@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   today.setHours(0, 0, 0, 0);
 
   // Fetch all data in parallel
-  const [salesRes, productsRes, customersRes, recentSalesRes] =
+  const [salesRes, productsRes, customersRes, recentSalesRes, expensesRes] =
     await Promise.all([
       supabase
         .from("sales")
@@ -42,17 +42,27 @@ export default async function DashboardPage() {
         .eq("is_deleted", false)
         .order("sale_date", { ascending: false })
         .limit(5),
+      supabase
+        .from("expenses")
+        .select("amount, expense_date")
+        .gte("expense_date", today.toISOString()),
     ]);
 
   const todaySales = salesRes.data || [];
   const products = productsRes.data || [];
   const topDebtors = customersRes.data || [];
   const recentSales = recentSalesRes.data || [];
-
+  const todayExpenses = expensesRes.data || [];
+  const todayExpenseTotal = todayExpenses.reduce(
+    (sum: number, e: { amount: number }) => sum + e.amount,
+    0,
+  );
   const todayRevenue = todaySales.reduce(
     (sum: number, s: { amount_paid: number }) => sum + s.amount_paid,
     0,
   );
+  const netRevenue = todayRevenue - todayExpenseTotal;
+
   const todaySalesCount = todaySales.length;
   const totalOutstandingDebt = topDebtors.reduce(
     (sum: number, c: { total_debt: number }) => sum + c.total_debt,
@@ -88,11 +98,18 @@ export default async function DashboardPage() {
               <TrendingUp size={16} className="text-green-600" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Today&apos;s revenue</p>
+          <p className="text-xs text-gray-500 mb-1">Today&apos;s net revenue</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatNaira(todayRevenue)}
+            {formatNaira(netRevenue)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{todaySalesCount} sales</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-xs text-green-600">
+              Sales: {formatNaira(todayRevenue)}
+            </p>
+            <p className="text-xs text-red-500">
+              Expenses: -{formatNaira(todayExpenseTotal)}
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5">

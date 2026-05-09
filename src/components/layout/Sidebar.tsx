@@ -7,10 +7,8 @@ import {
   Package,
   ShoppingCart,
   Users,
-  FileText,
   Settings,
   LogOut,
-  ClipboardList,
   Menu,
   X,
 } from "lucide-react";
@@ -26,21 +24,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutDashboard size={20} />,
-  },
+  { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={20} /> },
   { label: "Inventory", href: "/inventory", icon: <Package size={20} /> },
-  { label: "New sale", href: "/sales/new", icon: <ShoppingCart size={20} /> },
-  { label: "Sales", href: "/sales", icon: <ClipboardList size={20} /> },
+  { label: "Sales", href: "/sales", icon: <ShoppingCart size={20} /> },
   { label: "Customers", href: "/customers", icon: <Users size={20} /> },
-  {
-    label: "Reports",
-    href: "/reports",
-    icon: <FileText size={20} />,
-    adminOnly: true,
-  },
   {
     label: "Settings",
     href: "/settings",
@@ -52,9 +39,11 @@ const navItems: NavItem[] = [
 export default function Sidebar({
   userName,
   userRole,
+  businessName,
 }: {
   userName: string;
   userRole: UserRole;
+  businessName: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,9 +67,11 @@ export default function Sidebar({
             <span className="text-white text-base font-bold">R</span>
           </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900">Registrar</h1>
+            <h1 className="text-base font-bold text-gray-900 truncate">
+              {businessName}
+            </h1>
             <p className="text-[11px] text-gray-400 leading-none">
-              Business management
+              Powered by Registrar
             </p>
           </div>
         </div>
