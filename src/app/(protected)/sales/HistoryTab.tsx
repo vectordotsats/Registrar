@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { generateReceipt } from "@/lib/receipt";
 import { formatNaira, formatDateTime, getStatusColor } from "@/lib/utils";
 import {
   Search,
@@ -40,6 +41,31 @@ export default function HistoryTab() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "cash" | "invoice">("all");
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("My Business");
+
+  useEffect(() => {
+    const loadBusiness = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("business_id")
+          .eq("id", user.id)
+          .single();
+        if (profile?.business_id) {
+          const { data: biz } = await supabase
+            .from("businesses")
+            .select("name")
+            .eq("id", profile.business_id)
+            .single();
+          if (biz) setBusinessName(biz.name);
+        }
+      }
+    };
+    loadBusiness();
+  }, [supabase]);
 
   useEffect(() => {
     const fetchSales = async () => {
@@ -295,6 +321,33 @@ export default function HistoryTab() {
                             </p>
                           </div>
                         </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            generateReceipt({
+                              businessName: businessName,
+                              invoiceNumber: sale.invoice_number,
+                              saleDate: sale.sale_date,
+                              customerName: sale.customers?.name || null,
+                              soldBy: sale.sold_by,
+                              items: sale.sale_items.map((item) => ({
+                                name: item.products?.name || "Unknown",
+                                quantity: item.quantity,
+                                unit_price: item.unit_price,
+                                subtotal: item.subtotal,
+                              })),
+                              totalAmount: sale.total_amount,
+                              amountPaid: sale.amount_paid,
+                              paymentType: sale.payment_type,
+                              status: sale.status,
+                            });
+                          }}
+                          className="w-full py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                        >
+                          Download Receipt
+                        </button>
                       </div>
                     </div>
                   )}
