@@ -635,10 +635,31 @@ export default function NewSalePage() {
                       )}
                     </button>
                   ))}
-                  {filteredCustomers.length === 0 && (
-                    <p className="text-xs text-gray-400 px-3 py-2">
-                      No customers found
-                    </p>
+                  {filteredCustomers.length === 0 && customerSearch.trim() && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const businessId = await getBusinessId(supabase);
+                        const { data: newCustomer } = await supabase
+                          .from("customers")
+                          .insert({
+                            business_id: businessId,
+                            name: customerSearch.trim(),
+                            phone: "",
+                            address: "",
+                          })
+                          .select()
+                          .single();
+                        if (newCustomer) {
+                          setCustomers((prev) => [...prev, newCustomer]);
+                          setSelectedCustomerId(newCustomer.id);
+                          setCustomerSearch(newCustomer.name);
+                        }
+                      }}
+                      className="w-full text-left px-3 py-3 text-sm text-[var(--color-primary)] font-medium hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer"
+                    >
+                      + Add &quot;{customerSearch.trim()}&quot; as new customer
+                    </button>
                   )}
                 </div>
               </div>
