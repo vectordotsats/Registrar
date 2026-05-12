@@ -5,6 +5,7 @@ import { ShoppingCart, ClipboardList, Wallet } from "lucide-react";
 import NewSaleTab from "./NewSaleTab";
 import HistoryTab from "./HistoryTab";
 import ExpensesTab from "./ExpensesTab";
+import { useSearchParams } from "next/navigation";
 
 type Tab = "new" | "history" | "expenses";
 
@@ -15,7 +16,10 @@ const tabs = [
 ];
 
 export default function SalesPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("new");
+  // const [activeTab, setActiveTab] = useState<Tab>("new");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as Tab) || "new";
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   return (
     <div>

@@ -74,6 +74,27 @@ export default function NewSalePage() {
 
   const [savedInvoiceNumber, setSavedInvoiceNumber] = useState("");
 
+  // Save form state to sessionStorage
+  const saveFormState = () => {
+    try {
+      const state = {
+        cart: cart.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          unitQuantity: item.unitQuantity,
+          stockUnitLabel: item.stockUnit.label,
+        })),
+        saleType,
+        selectedCustomerId,
+        customerSearch,
+        amountPaid,
+        invoiceNumber,
+        soldBy,
+      };
+      sessionStorage.setItem("registrar_sale_draft", JSON.stringify(state));
+    } catch {}
+  };
+
   useEffect(() => {
     const load = async () => {
       const [productsRes, customersRes, staffRes] = await Promise.all([
@@ -85,13 +106,72 @@ export default function NewSalePage() {
           .eq("is_active", true)
           .order("name"),
       ]);
-      setProducts(productsRes.data || []);
-      setCustomers(customersRes.data || []);
+      const loadedProducts = productsRes.data || [];
+      const loadedCustomers = customersRes.data || [];
+      setProducts(loadedProducts);
+      setCustomers(loadedCustomers);
       setStaffMembers(staffRes.data || []);
       setLoading(false);
+
+      // Restore saved draft
+      try {
+        const saved = sessionStorage.getItem("registrar_sale_draft");
+        if (saved) {
+          const state = JSON.parse(saved);
+          if (state.cart && state.cart.length > 0) {
+            const restoredCart = state.cart
+              .map(
+                (item: {
+                  productId: string;
+                  quantity: number;
+                  unitQuantity: number;
+                  stockUnitLabel: string;
+                }) => {
+                  const product = loadedProducts.find(
+                    (p: Product) => p.id === item.productId,
+                  );
+                  if (!product) return null;
+                  const stockUnit =
+                    STOCK_UNITS.find((u) => u.label === item.stockUnitLabel) ||
+                    STOCK_UNITS[0];
+                  return {
+                    product,
+                    quantity: item.quantity,
+                    unit_price: product.selling_price,
+                    stockUnit,
+                    unitQuantity: item.unitQuantity,
+                  };
+                },
+              )
+              .filter(Boolean);
+            setCart(restoredCart);
+          }
+          if (state.saleType) setSaleType(state.saleType);
+          if (state.selectedCustomerId)
+            setSelectedCustomerId(state.selectedCustomerId);
+          if (state.customerSearch) setCustomerSearch(state.customerSearch);
+          if (state.amountPaid) setAmountPaid(state.amountPaid);
+          if (state.invoiceNumber) setInvoiceNumber(state.invoiceNumber);
+          if (state.soldBy) setSoldBy(state.soldBy);
+        }
+      } catch {}
     };
     load();
   }, [supabase]);
+
+  // Auto-save form state on every change
+  useEffect(() => {
+    if (!loading) saveFormState();
+  }, [
+    cart,
+    saleType,
+    selectedCustomerId,
+    customerSearch,
+    amountPaid,
+    invoiceNumber,
+    soldBy,
+    loading,
+  ]);
 
   const filteredProducts = products.filter(
     (p) =>
@@ -168,6 +248,8 @@ export default function NewSalePage() {
   };
 
   const handleSubmit = async () => {
+    setError("");
+
     if (cart.length === 0) {
       setError("Add at least one product to the cart");
       return;
@@ -186,8 +268,33 @@ export default function NewSalePage() {
     }
 
     setSubmitting(true);
-    setError("");
+    if (saleType === "invoice" && invoiceNumber.trim()) {
+      const { data: existing } = await supabase
+        .from("sales")
+        .select("id")
+        .eq("invoice_number", invoiceNumber.trim())
+        .eq("is_deleted", false)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        setError(
+          `Invoice #${invoiceNumber.trim()} already exists. Use a different number.`,
+        );
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const businessId = await getBusinessId(supabase);
+    console.log("About to insert sale", {
+      businessId,
+      selectedCustomerId,
+      soldBy,
+      cartTotal,
+      paidAmount,
+      saleType,
+      invoiceNumber,
+    });
 
     const {
       data: { user },
@@ -273,6 +380,7 @@ export default function NewSalePage() {
     }
 
     setSavedInvoiceNumber(invoiceNumber.trim());
+    sessionStorage.removeItem("registrar_sale_draft");
     setSuccess(true);
     setSubmitting(false);
   };
@@ -298,6 +406,7 @@ export default function NewSalePage() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => {
+              sessionStorage.removeItem("registrar_sale_draft");
               setCart([]);
               setSaleType("cash");
               setSelectedCustomerId("");
@@ -314,7 +423,7 @@ export default function NewSalePage() {
             New sale
           </button>
           <button
-            onClick={() => router.push("/sales")}
+            onClick={() => (window.location.href = "/sales?tab=history")}
             className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer"
           >
             View sales
