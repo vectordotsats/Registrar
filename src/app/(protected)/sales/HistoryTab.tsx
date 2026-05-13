@@ -69,6 +69,10 @@ export default function HistoryTab() {
 
   useEffect(() => {
     const fetchSales = async () => {
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from("sales")
         .select(

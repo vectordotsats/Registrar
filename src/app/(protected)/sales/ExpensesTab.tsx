@@ -19,6 +19,10 @@ export default function ExpensesTab() {
   const [showAdd, setShowAdd] = useState(false);
 
   const fetchExpenses = async () => {
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("expenses")
       .select("*")

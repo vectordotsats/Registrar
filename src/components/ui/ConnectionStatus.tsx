@@ -62,16 +62,25 @@ export default function ConnectionStatus() {
       setSyncing(true);
       setPendingCount(allSales.length);
 
-      // Dispatch sync event for the sales page to handle
-      window.dispatchEvent(new CustomEvent("sync-pending-sales"));
+      // Import and run the actual sync
+      const { syncPendingSales: doSync } = await import("@/lib/offline");
+      const { createClient } = await import("@/lib/supabase-browser");
+      const supabase = createClient();
 
-      // Recheck count after a delay
-      setTimeout(() => {
-        checkPendingCount();
-        setSyncing(false);
-      }, 3000);
+      const result = await doSync(
+        supabase as unknown as Record<string, unknown>,
+      );
+
+      await checkPendingCount();
+      setSyncing(false);
+
+      if (result.synced > 0) {
+        setShowBanner(true);
+        setTimeout(() => setShowBanner(false), 3000);
+      }
     } catch {
       setSyncing(false);
+      await checkPendingCount();
     }
   };
 

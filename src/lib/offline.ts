@@ -112,23 +112,28 @@ export async function syncPendingSales(supabase: Record<string, unknown>): Promi
   let synced = 0;
   let failed = 0;
 
-  // Need to type supabase properly for the calls
-  const sb = supabase as {
-    from: (table: string) => {
-      insert: (data: Record<string, unknown>) => { select: () => { single: () => Promise<{ data: Record<string, unknown> | null; error: Record<string, unknown> | null }> } };
-      update: (data: Record<string, unknown>) => { eq: (col: string, val: unknown) => Promise<{ error: Record<string, unknown> | null }> };
-    };
-  };
+  if (pending.length === 0) return { synced, failed };
+
+  const sb = supabase as any;
+  const { data: { user } } = await sb.auth.getUser();
+  let businessId = "";
+  if (user) {
+    const { data: profile } = await sb.from("users").select("business_id").eq("id", user.id).single();
+    businessId = profile?.business_id || "";
+  }
 
   for (const sale of pending) {
     try {
+      const saleBusinessId = sale.businessId || businessId;
+      const saleUserId = sale.userId || user?.id || "";
+
       // 1. Create the sale
       const { data: createdSale, error: saleError } = await sb
         .from("sales")
         .insert({
-          business_id: sale.businessId,
+          business_id: saleBusinessId,
           customer_id: sale.customerId,
-          created_by: sale.userId,
+          created_by: saleUserId,
           sold_by: sale.soldBy,
           total_amount: sale.totalAmount,
           amount_paid: sale.amountPaid,
@@ -147,32 +152,31 @@ export async function syncPendingSales(supabase: Record<string, unknown>): Promi
 
       // 2. Create sale items
       const saleItems = sale.items.map((item) => ({
-        sale_id: (createdSale as Record<string, unknown>).id,
+        sale_id: createdSale.id,
         product_id: item.productId,
         quantity: item.quantity,
         unit_price: item.unitPrice,
         subtotal: item.subtotal,
       }));
 
-      await sb.from("sale_items").insert(saleItems as unknown as Record<string, unknown>);
+      await sb.from("sale_items").insert(saleItems);
 
       // 3. Update stock for each item
       for (const item of sale.items) {
-        // We can't know the exact current stock offline, so we decrement
         const { data: product } = await sb
           .from("products")
-          .select()
+          .select("quantity_in_stock")
           .eq("id", item.productId)
-          .single() as unknown as { data: { quantity_in_stock: number } | null };
+          .single();
 
         if (product) {
           const newStock = product.quantity_in_stock - item.quantity;
           await sb.from("products").update({ quantity_in_stock: newStock }).eq("id", item.productId);
 
           await sb.from("inventory_log").insert({
-            business_id: sale.businessId,
+            business_id: saleBusinessId,
             product_id: item.productId,
-            created_by: sale.userId,
+            created_by: saleUserId,
             logged_by: sale.soldBy,
             type: "sale",
             quantity_change: -item.quantity,
@@ -180,7 +184,7 @@ export async function syncPendingSales(supabase: Record<string, unknown>): Promi
             reason: sale.invoiceNumber
               ? `Invoice ${sale.invoiceNumber} — sold ${item.quantity} units (synced from offline)`
               : `Cash sale — sold ${item.quantity} units (synced from offline)`,
-          } as unknown as Record<string, unknown>);
+          });
         }
       }
 
@@ -189,9 +193,9 @@ export async function syncPendingSales(supabase: Record<string, unknown>): Promi
         const balance = sale.totalAmount - sale.amountPaid;
         const { data: customer } = await sb
           .from("customers")
-          .select()
+          .select("total_debt")
           .eq("id", sale.customerId)
-          .single() as unknown as { data: { total_debt: number } | null };
+          .single();
 
         if (customer) {
           await sb.from("customers").update({ total_debt: customer.total_debt + balance }).eq("id", sale.customerId);
