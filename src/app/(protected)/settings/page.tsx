@@ -40,6 +40,15 @@ export default function SettingsPage() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
+  const [profileName, setProfileName] = useState("");
+  const [businessNameEdit, setBusinessNameEdit] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileMsg, setProfileMsg] = useState("");
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
   const fetchData = async () => {
     const [staffRes, accountsRes] = await Promise.all([
       supabase.from("staff_members").select("*").order("name"),
@@ -51,6 +60,28 @@ export default function SettingsPage() {
     setStaff(staffRes.data || []);
     setAccounts((accountsRes.data as UserAccount[]) || []);
     setLoading(false);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: me } = await supabase
+        .from("users")
+        .select("name, business_id")
+        .eq("id", user.id)
+        .single();
+      if (me) {
+        setProfileName(me.name);
+        if (me.business_id) {
+          const { data: biz } = await supabase
+            .from("businesses")
+            .select("name")
+            .eq("id", me.business_id)
+            .single();
+          if (biz) setBusinessNameEdit(biz.name);
+        }
+      }
+    }
   };
 
   useEffect(() => {
@@ -120,6 +151,80 @@ export default function SettingsPage() {
     }
   };
 
+  const saveProfile = async () => {
+    setProfileLoading(true);
+    setProfileMsg("");
+    const res = await fetch("/api/staff/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_profile", name: profileName }),
+    });
+    if (res.ok) setProfileMsg("Name updated");
+    else setProfileMsg("Failed to update");
+    setProfileLoading(false);
+  };
+
+  const saveBusinessName = async () => {
+    setProfileLoading(true);
+    setProfileMsg("");
+    const res = await fetch("/api/staff/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "update_business",
+        businessName: businessNameEdit,
+      }),
+    });
+    if (res.ok) setProfileMsg("Business name updated");
+    else setProfileMsg("Failed to update");
+    setProfileLoading(false);
+  };
+
+  const changePassword = async () => {
+    if (newPassword.length < 6) {
+      setProfileMsg("Password must be at least 6 characters");
+      return;
+    }
+    setProfileLoading(true);
+    setProfileMsg("");
+    const res = await fetch("/api/staff/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "change_password", newPassword }),
+    });
+    if (res.ok) {
+      setProfileMsg("Password changed");
+      setNewPassword("");
+    } else setProfileMsg("Failed to change password");
+    setProfileLoading(false);
+  };
+
+  const resetStaffPassword = async (staffUserId: string) => {
+    if (resetPasswordValue.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+    setResetLoading(true);
+    const res = await fetch("/api/staff/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "reset_staff_password",
+        staffUserId,
+        newPassword: resetPasswordValue,
+      }),
+    });
+    if (res.ok) {
+      alert("Password reset successfully");
+      setResetPasswordId(null);
+      setResetPasswordValue("");
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to reset password");
+    }
+    setResetLoading(false);
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] relative">
       {/* Subtle background pattern */}
@@ -143,6 +248,86 @@ export default function SettingsPage() {
 
         {/* Two column grid on desktop, stacked on mobile */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          {/* My Profile */}
+          <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-[var(--color-primary-light)] to-white">
+              <h2 className="text-base font-semibold text-gray-900">
+                My Profile
+              </h2>
+              <p className="text-xs text-gray-500">
+                Update your personal and business details
+              </p>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+                  />
+                  <button
+                    onClick={saveProfile}
+                    disabled={profileLoading}
+                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Business name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={businessNameEdit}
+                    onChange={(e) => setBusinessNameEdit(e.target.value)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+                  />
+                  <button
+                    onClick={saveBusinessName}
+                    disabled={profileLoading}
+                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Change password
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+                  />
+                  <button
+                    onClick={changePassword}
+                    disabled={profileLoading || !newPassword}
+                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+            {profileMsg && (
+              <div className="px-6 pb-4">
+                <p className="text-sm text-green-600">{profileMsg}</p>
+              </div>
+            )}
+          </div>
+
           {/* Login Accounts Card */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
             {/* Card header with gradient accent */}
@@ -223,14 +408,57 @@ export default function SettingsPage() {
                           {account.role}
                         </span>
                         {account.role !== "admin" && (
-                          <button
-                            onClick={() => deleteAccount(account)}
-                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => {
+                                setResetPasswordId(
+                                  resetPasswordId === account.id
+                                    ? null
+                                    : account.id,
+                                );
+                                setResetPasswordValue("");
+                              }}
+                              className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                              title="Reset password"
+                            >
+                              <Lock size={15} />
+                            </button>
+                            <button
+                              onClick={() => deleteAccount(account)}
+                              className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </>
                         )}
                       </div>
+
+                      {resetPasswordId === account.id && (
+                        <div className="px-6 py-3 bg-amber-50 border-t border-amber-100 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={resetPasswordValue}
+                            onChange={(e) =>
+                              setResetPasswordValue(e.target.value)
+                            }
+                            placeholder="Enter new password (min 6 chars)"
+                            className="flex-1 px-3 py-2 rounded-lg border border-amber-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                          />
+                          <button
+                            onClick={() => resetStaffPassword(account.id)}
+                            disabled={resetLoading}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium cursor-pointer disabled:opacity-60"
+                          >
+                            {resetLoading ? "Resetting..." : "Reset"}
+                          </button>
+                          <button
+                            onClick={() => setResetPasswordId(null)}
+                            className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
