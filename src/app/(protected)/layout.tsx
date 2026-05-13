@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import type { UserRole } from "@/types";
+import ConnectionStatus from "@/components/ui/ConnectionStatus";
 
 export default async function DashboardLayout({
   children,
@@ -37,6 +38,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ConnectionStatus />
       <Sidebar
         userName={userName}
         userRole={userRole}

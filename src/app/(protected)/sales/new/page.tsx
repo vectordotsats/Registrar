@@ -13,6 +13,15 @@ import {
   ShoppingCart,
   CheckCircle2,
 } from "lucide-react";
+import {
+  queueOfflineSale,
+  cacheProducts,
+  cacheCustomers,
+  cacheStaff,
+  getCachedProducts,
+  getCachedCustomers,
+  getCachedStaff,
+} from "@/lib/offline";
 import { useRouter } from "next/navigation";
 
 const STOCK_UNITS = [
@@ -106,11 +115,36 @@ export default function NewSalePage() {
           .eq("is_active", true)
           .order("name"),
       ]);
+
       const loadedProducts = productsRes.data || [];
       const loadedCustomers = customersRes.data || [];
       setProducts(loadedProducts);
       setCustomers(loadedCustomers);
       setStaffMembers(staffRes.data || []);
+
+      // Cache data for offline use
+      if (loadedProducts.length > 0)
+        cacheProducts(loadedProducts as unknown as Record<string, unknown>[]);
+      if (loadedCustomers.length > 0)
+        cacheCustomers(loadedCustomers as unknown as Record<string, unknown>[]);
+      if (staffRes.data && staffRes.data.length > 0)
+        cacheStaff(staffRes.data as unknown as Record<string, unknown>[]);
+
+      // If no products loaded (might be offline), try cache
+      if (loadedProducts.length === 0) {
+        const cached = await getCachedProducts();
+        if (cached.length > 0) setProducts(cached as unknown as Product[]);
+      }
+      if (loadedCustomers.length === 0) {
+        const cached = await getCachedCustomers();
+        if (cached.length > 0) setCustomers(cached as unknown as Customer[]);
+      }
+      if (!staffRes.data || staffRes.data.length === 0) {
+        const cached = await getCachedStaff();
+        if (cached.length > 0)
+          setStaffMembers(cached as unknown as StaffMember[]);
+      }
+
       setLoading(false);
 
       // Restore saved draft
@@ -268,7 +302,7 @@ export default function NewSalePage() {
     }
 
     setSubmitting(true);
-    if (saleType === "invoice" && invoiceNumber.trim()) {
+    if (navigator.onLine && saleType === "invoice" && invoiceNumber.trim()) {
       const { data: existing } = await supabase
         .from("sales")
         .select("id")
@@ -283,6 +317,45 @@ export default function NewSalePage() {
         setSubmitting(false);
         return;
       }
+    }
+
+    // If offline, queue the sale and show success
+    if (!navigator.onLine) {
+      await queueOfflineSale({
+        timestamp: new Date().toISOString(),
+        businessId: "",
+        userId: "",
+        soldBy,
+        saleType,
+        invoiceNumber: saleType === "invoice" ? invoiceNumber.trim() : null,
+        customerId: saleType === "invoice" ? selectedCustomerId : null,
+        customerName:
+          saleType === "invoice"
+            ? customers.find((c) => c.id === selectedCustomerId)?.name || null
+            : null,
+        totalAmount: cartTotal,
+        amountPaid: paidAmount,
+        status:
+          saleType === "cash"
+            ? "paid"
+            : paidAmount <= 0
+              ? "unpaid"
+              : paidAmount < cartTotal
+                ? "partial"
+                : "paid",
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          subtotal: item.unit_price * item.quantity,
+        })),
+      });
+      sessionStorage.removeItem("registrar_sale_draft");
+      setSavedInvoiceNumber(invoiceNumber.trim());
+      setSuccess(true);
+      setSubmitting(false);
+      return;
     }
 
     const businessId = await getBusinessId(supabase);
