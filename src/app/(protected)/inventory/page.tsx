@@ -216,10 +216,11 @@ export default function InventoryPage() {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <button
-                          onClick={() => setEditingProduct(product)}
-                          className="p-2 text-gray-400 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer"
+                          onClick={() => setRestockingProduct(product)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                          title="Restock"
                         >
-                          <Edit2 size={16} />
+                          <PackagePlus size={16} />
                         </button>
                         <button
                           onClick={() => setEditingProduct(product)}
