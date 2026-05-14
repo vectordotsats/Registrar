@@ -44,8 +44,8 @@ export default async function DashboardLayout({
         userRole={userRole}
         businessName={businessName}
       />
-      <main className="lg:ml-60 min-h-screen">
-        <div className="p-4 lg:p-8 pt-16 lg:pt-8">{children}</div>
+      <main className="lg:ml-64 min-h-screen">
+        <div className="p-4 lg:p-8 pb-24 lg:pb-8">{children}</div>
       </main>
     </div>
   );
