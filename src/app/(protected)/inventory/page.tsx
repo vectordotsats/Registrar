@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { formatNaira, getStockStatus } from "@/lib/utils";
 import type { Product } from "@/types";
-import { Plus, Search, Package, Edit2, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Package,
+  Edit2,
+  Loader2,
+  PackagePlus,
+} from "lucide-react";
 import AddProductModal from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
 
@@ -244,6 +251,17 @@ export default function InventoryPage() {
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
+            fetchProducts();
+          }}
+        />
+      )}
+
+      {restockingProduct && (
+        <RestockModal
+          product={restockingProduct}
+          onClose={() => setRestockingProduct(null)}
+          onSuccess={() => {
+            setRestockingProduct(null);
             fetchProducts();
           }}
         />
