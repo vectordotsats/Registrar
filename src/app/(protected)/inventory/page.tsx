@@ -16,6 +16,9 @@ export default function InventoryPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [userRole, setUserRole] = useState<string>("staff");
+  const [restockingProduct, setRestockingProduct] = useState<Product | null>(
+    null,
+  );
 
   const fetchProducts = async () => {
     const { data } = await supabase

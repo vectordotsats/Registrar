@@ -21,7 +21,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={22} /> },
-  { label: "Inventory", href: "/inventory", icon: <Package size={22} /> },
+  { label: "Stocks", href: "/inventory", icon: <Package size={22} /> },
   { label: "Sales", href: "/sales", icon: <ShoppingCart size={22} /> },
   { label: "Customers", href: "/customers", icon: <Users size={22} /> },
   { label: "Account", href: "/settings", icon: <Settings size={22} /> },
@@ -100,13 +100,6 @@ export default function Sidebar({
                 <p className="text-xs text-gray-400 capitalize">{userRole}</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 w-full transition-colors"
-            >
-              <LogOut size={20} />
-              Log out
-            </button>
           </div>
         </div>
       </aside>
