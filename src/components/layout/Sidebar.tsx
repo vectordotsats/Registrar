@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "Inventory", href: "/inventory", icon: <Package size={20} /> },
   { label: "Sales", href: "/sales", icon: <ShoppingCart size={20} /> },
   { label: "Customers", href: "/customers", icon: <Users size={20} /> },
+  { label: "Account", href: "/settings", icon: <Settings size={20} /> },
 ];
 
 export default function Sidebar({
