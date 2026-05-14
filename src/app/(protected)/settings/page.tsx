@@ -4,22 +4,26 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { getBusinessId } from "@/lib/utils";
 import {
+  User,
+  Building2,
+  Lock,
+  Users,
+  UserPlus,
+  ChevronRight,
+  ArrowLeft,
   Plus,
   Trash2,
   Loader2,
-  Users,
   X,
-  UserPlus,
-  Mail,
-  Lock,
-  User,
+  LogOut,
+  Shield,
+  Key,
 } from "lucide-react";
 
 interface StaffMember {
   id: string;
   name: string;
   is_active: boolean;
-  created_at: string;
 }
 
 interface UserAccount {
@@ -30,21 +34,35 @@ interface UserAccount {
   is_active: boolean;
 }
 
+type Section =
+  | null
+  | "profile"
+  | "business"
+  | "password"
+  | "accounts"
+  | "staff";
+
 export default function SettingsPage() {
   const supabase = createClient();
+  const [activeSection, setActiveSection] = useState<Section>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Data
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState("");
-
   const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
   const [businessNameEdit, setBusinessNameEdit] = useState("");
+  const [userRole, setUserRole] = useState("staff");
+
+  // UI states
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileMsg, setProfileMsg] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newStaffName, setNewStaffName] = useState("");
+  const [addingStaff, setAddingStaff] = useState(false);
+  const [staffError, setStaffError] = useState("");
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -59,7 +77,6 @@ export default function SettingsPage() {
     ]);
     setStaff(staffRes.data || []);
     setAccounts((accountsRes.data as UserAccount[]) || []);
-    setLoading(false);
 
     const {
       data: { user },
@@ -67,11 +84,13 @@ export default function SettingsPage() {
     if (user) {
       const { data: me } = await supabase
         .from("users")
-        .select("name, business_id")
+        .select("name, email, role, business_id")
         .eq("id", user.id)
         .single();
       if (me) {
         setProfileName(me.name);
+        setProfileEmail(me.email);
+        setUserRole(me.role);
         if (me.business_id) {
           const { data: biz } = await supabase
             .from("businesses")
@@ -82,91 +101,28 @@ export default function SettingsPage() {
         }
       }
     }
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const addStaffName = async () => {
-    if (!newName.trim()) return;
-    setAdding(true);
-    setError("");
-    const businessId = await getBusinessId(supabase);
-    const exists = staff.some(
-      (s) => s.name.toLowerCase() === newName.trim().toLowerCase(),
-    );
-    if (exists) {
-      setError("This name already exists");
-      setAdding(false);
-      return;
-    }
-    const { error: dbError } = await supabase.from("staff_members").insert({
-      business_id: businessId,
-      name: newName.trim(),
-    });
-    if (dbError) {
-      setError(dbError.message);
-    } else {
-      setNewName("");
-      fetchData();
-    }
-    setAdding(false);
-  };
-
-  const toggleStaff = async (id: string, currentlyActive: boolean) => {
-    await supabase
-      .from("staff_members")
-      .update({ is_active: !currentlyActive })
-      .eq("id", id);
-    fetchData();
-  };
-
-  const deleteStaff = async (id: string, name: string) => {
-    const confirmed = window.confirm(`Remove "${name}" from staff list?`);
-    if (!confirmed) return;
-    await supabase.from("staff_members").delete().eq("id", id);
-    fetchData();
-  };
-
-  const deleteAccount = async (account: UserAccount) => {
-    if (account.role === "admin") {
-      alert("Cannot delete admin accounts");
-      return;
-    }
-    const confirmed = window.confirm(
-      `Delete login account for "${account.name}" (${account.email})? They will no longer be able to log in.`,
-    );
-    if (!confirmed) return;
-    const res = await fetch("/api/staff", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ auth_user_id: account.id }),
-    });
-    if (res.ok) {
-      fetchData();
-    } else {
-      const data = await res.json();
-      alert(data.error || "Failed to delete account");
-    }
-  };
-
   const saveProfile = async () => {
-    setProfileLoading(true);
-    setProfileMsg("");
+    setSaving(true);
+    setMsg("");
     const res = await fetch("/api/staff/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update_profile", name: profileName }),
     });
-    if (res.ok) setProfileMsg("Name updated");
-    else setProfileMsg("Failed to update");
-    setProfileLoading(false);
+    setMsg(res.ok ? "Name updated successfully" : "Failed to update");
+    setSaving(false);
   };
 
   const saveBusinessName = async () => {
-    setProfileLoading(true);
-    setProfileMsg("");
+    setSaving(true);
+    setMsg("");
     const res = await fetch("/api/staff/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -175,28 +131,27 @@ export default function SettingsPage() {
         businessName: businessNameEdit,
       }),
     });
-    if (res.ok) setProfileMsg("Business name updated");
-    else setProfileMsg("Failed to update");
-    setProfileLoading(false);
+    setMsg(res.ok ? "Business name updated" : "Failed to update");
+    setSaving(false);
   };
 
   const changePassword = async () => {
     if (newPassword.length < 6) {
-      setProfileMsg("Password must be at least 6 characters");
+      setMsg("Password must be at least 6 characters");
       return;
     }
-    setProfileLoading(true);
-    setProfileMsg("");
+    setSaving(true);
+    setMsg("");
     const res = await fetch("/api/staff/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "change_password", newPassword }),
     });
     if (res.ok) {
-      setProfileMsg("Password changed");
+      setMsg("Password changed successfully");
       setNewPassword("");
-    } else setProfileMsg("Failed to change password");
-    setProfileLoading(false);
+    } else setMsg("Failed to change password");
+    setSaving(false);
   };
 
   const resetStaffPassword = async (staffUserId: string) => {
@@ -220,401 +175,519 @@ export default function SettingsPage() {
       setResetPasswordValue("");
     } else {
       const data = await res.json();
-      alert(data.error || "Failed to reset password");
+      alert(data.error || "Failed");
     }
     setResetLoading(false);
   };
 
-  return (
-    <div className="min-h-[calc(100vh-4rem)] relative">
-      {/* Subtle background pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236C5CE7' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
+  const addStaffName = async () => {
+    if (!newStaffName.trim()) return;
+    setAddingStaff(true);
+    setStaffError("");
+    const exists = staff.some(
+      (s) => s.name.toLowerCase() === newStaffName.trim().toLowerCase(),
+    );
+    if (exists) {
+      setStaffError("Already exists");
+      setAddingStaff(false);
+      return;
+    }
+    const businessId = await getBusinessId(supabase);
+    await supabase
+      .from("staff_members")
+      .insert({ business_id: businessId, name: newStaffName.trim() });
+    setNewStaffName("");
+    fetchData();
+    setAddingStaff(false);
+  };
 
-      <div className="relative">
-        {/* Header */}
-        <div className="mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Manage staff and system access
-            </p>
-          </div>
-        </div>
+  const toggleStaff = async (id: string, active: boolean) => {
+    await supabase
+      .from("staff_members")
+      .update({ is_active: !active })
+      .eq("id", id);
+    fetchData();
+  };
 
-        {/* Two column grid on desktop, stacked on mobile */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {/* My Profile */}
-          <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-[var(--color-primary-light)] to-white">
-              <h2 className="text-base font-semibold text-gray-900">
-                My Profile
-              </h2>
-              <p className="text-xs text-gray-500">
-                Update your personal and business details
-              </p>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your name
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
-                  />
-                  <button
-                    onClick={saveProfile}
-                    disabled={profileLoading}
-                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business name
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={businessNameEdit}
-                    onChange={(e) => setBusinessNameEdit(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
-                  />
-                  <button
-                    onClick={saveBusinessName}
-                    disabled={profileLoading}
-                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Change password
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New password"
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
-                  />
-                  <button
-                    onClick={changePassword}
-                    disabled={profileLoading || !newPassword}
-                    className="px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            </div>
-            {profileMsg && (
-              <div className="px-6 pb-4">
-                <p className="text-sm text-green-600">{profileMsg}</p>
-              </div>
-            )}
-          </div>
+  const deleteStaff = async (id: string, name: string) => {
+    if (!window.confirm(`Remove "${name}"?`)) return;
+    await supabase.from("staff_members").delete().eq("id", id);
+    fetchData();
+  };
 
-          {/* Login Accounts Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-            {/* Card header with gradient accent */}
-            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-[var(--color-primary-light)] to-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-sm">
-                    <UserPlus size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900">
-                      Login accounts
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      System access management
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-2 px-4 rounded-xl transition-colors text-sm cursor-pointer shadow-sm"
-                >
-                  <Plus size={16} /> Create
-                </button>
-              </div>
-            </div>
+  const deleteAccount = async (account: UserAccount) => {
+    if (account.role === "admin") {
+      alert("Cannot delete admin accounts");
+      return;
+    }
+    if (!window.confirm(`Delete account for "${account.name}"?`)) return;
+    const res = await fetch("/api/staff", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_user_id: account.id }),
+    });
+    if (res.ok) fetchData();
+    else alert("Failed to delete");
+  };
 
-            {/* Accounts list */}
-            <div className="flex-1">
-              {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 size={24} className="animate-spin text-gray-400" />
-                </div>
-              ) : accounts.length === 0 ? (
-                <div className="flex flex-col items-center py-16">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                    <Users size={24} className="text-gray-300" />
-                  </div>
-                  <p className="text-sm text-gray-400">No accounts yet</p>
-                  <p className="text-xs text-gray-300 mt-1">
-                    Create one to get started
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {accounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ${
-                            account.role === "admin"
-                              ? "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {account.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {account.name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {account.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
-                            account.role === "admin"
-                              ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {account.role}
-                        </span>
-                        {account.role !== "admin" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setResetPasswordId(
-                                  resetPasswordId === account.id
-                                    ? null
-                                    : account.id,
-                                );
-                                setResetPasswordValue("");
-                              }}
-                              className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                              title="Reset password"
-                            >
-                              <Lock size={15} />
-                            </button>
-                            <button
-                              onClick={() => deleteAccount(account)}
-                              className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
-                      {resetPasswordId === account.id && (
-                        <div className="px-6 py-3 bg-amber-50 border-t border-amber-100 flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={resetPasswordValue}
-                            onChange={(e) =>
-                              setResetPasswordValue(e.target.value)
-                            }
-                            placeholder="Enter new password (min 6 chars)"
-                            className="flex-1 px-3 py-2 rounded-lg border border-amber-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                          />
-                          <button
-                            onClick={() => resetStaffPassword(account.id)}
-                            disabled={resetLoading}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium cursor-pointer disabled:opacity-60"
-                          >
-                            {resetLoading ? "Resetting..." : "Reset"}
-                          </button>
-                          <button
-                            onClick={() => setResetPasswordId(null)}
-                            className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer stat */}
-            <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-xs text-gray-400">
-                {accounts.length} total account
-                {accounts.length !== 1 ? "s" : ""} —{" "}
-                {accounts.filter((a) => a.role === "admin").length} admin,{" "}
-                {accounts.filter((a) => a.role === "staff").length} staff
-              </p>
-            </div>
-          </div>
-
-          {/* Sales Staff Names Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-            {/* Card header */}
-            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center shadow-sm">
-                  <Users size={20} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900">
-                    Sales staff names
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    Appears in &quot;who made this sale&quot; dropdown
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick add */}
-            <div className="px-6 py-4 border-b border-gray-100">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => {
-                    setNewName(e.target.value);
-                    setError("");
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && addStaffName()}
-                  placeholder="Enter staff name..."
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
-                />
-                <button
-                  onClick={addStaffName}
-                  disabled={adding || !newName.trim()}
-                  className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white font-medium py-2.5 px-4 rounded-xl transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {adding ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Plus size={16} />
-                  )}{" "}
-                  Add
-                </button>
-              </div>
-              {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
-            </div>
-
-            {/* Staff list */}
-            <div className="flex-1">
-              {staff.length === 0 ? (
-                <div className="flex flex-col items-center py-16">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                    <Users size={24} className="text-gray-300" />
-                  </div>
-                  <p className="text-sm text-gray-400">No staff names added</p>
-                  <p className="text-xs text-gray-300 mt-1">
-                    Add names for the sales dropdown
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {staff.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium shadow-sm ${
-                            member.is_active
-                              ? "bg-gradient-to-br from-gray-700 to-gray-900 text-white"
-                              : "bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p
-                            className={`text-sm font-medium ${member.is_active ? "text-gray-900" : "text-gray-400 line-through"}`}
-                          >
-                            {member.name}
-                          </p>
-                          {!member.is_active && (
-                            <p className="text-xs text-gray-400">Deactivated</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            toggleStaff(member.id, member.is_active)
-                          }
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                            member.is_active
-                              ? "bg-green-50 text-green-600 hover:bg-green-100 ring-1 ring-green-100"
-                              : "bg-gray-50 text-gray-400 hover:bg-gray-100 ring-1 ring-gray-100"
-                          }`}
-                        >
-                          {member.is_active ? "Active" : "Inactive"}
-                        </button>
-                        <button
-                          onClick={() => deleteStaff(member.id, member.name)}
-                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer stat */}
-            <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
-              <p className="text-xs text-gray-400">
-                {staff.filter((s) => s.is_active).length} active of{" "}
-                {staff.length} total
-              </p>
-            </div>
-          </div>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-gray-400" />
       </div>
+    );
+  }
 
-      {showCreateModal && (
-        <CreateAccountModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            fetchData();
-          }}
-        />
-      )}
+  const isAdmin = userRole === "admin";
+
+  // Menu items
+  const menuItems = [
+    {
+      id: "profile" as Section,
+      label: "My Profile",
+      desc: "Name and email",
+      icon: <User size={20} />,
+      show: true,
+    },
+    {
+      id: "business" as Section,
+      label: "Business Details",
+      desc: "Business name and info",
+      icon: <Building2 size={20} />,
+      show: isAdmin,
+    },
+    {
+      id: "password" as Section,
+      label: "Change Password",
+      desc: "Update your login password",
+      icon: <Lock size={20} />,
+      show: true,
+    },
+    {
+      id: "accounts" as Section,
+      label: "Login Accounts",
+      desc: `${accounts.length} account${accounts.length !== 1 ? "s" : ""}`,
+      icon: <Shield size={20} />,
+      show: isAdmin,
+    },
+    {
+      id: "staff" as Section,
+      label: "Sales Staff Names",
+      desc: `${staff.filter((s) => s.is_active).length} active`,
+      icon: <Users size={20} />,
+      show: isAdmin,
+    },
+  ].filter((item) => item.show);
+
+  // Section header with back button
+  const SectionHeader = ({ title, desc }: { title: string; desc?: string }) => (
+    <div className="mb-6">
+      <button
+        onClick={() => {
+          setActiveSection(null);
+          setMsg("");
+        }}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-4 cursor-pointer"
+      >
+        <ArrowLeft size={18} /> Back to settings
+      </button>
+      <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+      {desc && <p className="text-gray-500 text-sm mt-1">{desc}</p>}
     </div>
   );
+
+  // ---- MAIN MENU ----
+  if (activeSection === null) {
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Account</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage your account and business settings
+          </p>
+        </div>
+
+        {/* User card */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6 flex items-center gap-4 max-w-xl">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white flex items-center justify-center text-xl font-bold shadow-sm">
+            {profileName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-base font-semibold text-gray-900">
+              {profileName}
+            </p>
+            <p className="text-sm text-gray-400">{profileEmail}</p>
+            <span className="inline-block mt-1 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-[var(--color-primary-light)] text-[var(--color-primary)] capitalize">
+              {userRole}
+            </span>
+          </div>
+        </div>
+
+        {/* Menu list */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden max-w-xl">
+          {menuItems.map((item, i) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveSection(item.id)}
+              className={`w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer ${i !== menuItems.length - 1 ? "border-b border-gray-50" : ""}`}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 flex-shrink-0">
+                {item.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">
+                  {item.label}
+                </p>
+                <p className="text-xs text-gray-400">{item.desc}</p>
+              </div>
+              <ChevronRight size={18} className="text-gray-300 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+
+        {/* Logout */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden max-w-xl mt-4">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-red-50 transition-colors cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
+              <LogOut size={20} />
+            </div>
+            <p className="text-sm font-medium text-red-600">Log out</p>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- MY PROFILE ----
+  if (activeSection === "profile") {
+    return (
+      <div className="max-w-xl">
+        <SectionHeader title="My Profile" desc="Update your personal details" />
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Full name
+            </label>
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={profileEmail}
+              disabled
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Email changes coming soon
+            </p>
+          </div>
+          {msg && <p className="text-sm text-green-600">{msg}</p>}
+          <button
+            onClick={saveProfile}
+            disabled={saving}
+            className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- BUSINESS DETAILS ----
+  if (activeSection === "business") {
+    return (
+      <div className="max-w-xl">
+        <SectionHeader
+          title="Business Details"
+          desc="Your business information"
+        />
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Business name
+            </label>
+            <input
+              type="text"
+              value={businessNameEdit}
+              onChange={(e) => setBusinessNameEdit(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+            />
+          </div>
+          {msg && <p className="text-sm text-green-600">{msg}</p>}
+          <button
+            onClick={saveBusinessName}
+            disabled={saving}
+            className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- CHANGE PASSWORD ----
+  if (activeSection === "password") {
+    return (
+      <div className="max-w-xl">
+        <SectionHeader
+          title="Change Password"
+          desc="Update your login password"
+        />
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New password
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 6 characters"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+            />
+          </div>
+          {msg && (
+            <p
+              className={`text-sm ${msg.includes("success") ? "text-green-600" : "text-red-600"}`}
+            >
+              {msg}
+            </p>
+          )}
+          <button
+            onClick={changePassword}
+            disabled={saving || !newPassword}
+            className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60"
+          >
+            {saving ? "Changing..." : "Change password"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- LOGIN ACCOUNTS ----
+  if (activeSection === "accounts") {
+    return (
+      <div className="max-w-xl">
+        <SectionHeader
+          title="Login Accounts"
+          desc="Manage who can log into the system"
+        />
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 mb-4 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer shadow-sm"
+        >
+          <UserPlus size={18} /> Create staff account
+        </button>
+
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {accounts.map((account) => (
+            <div key={account.id}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ${account.role === "admin" ? "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white" : "bg-gray-100 text-gray-600"}`}
+                  >
+                    {account.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {account.name}
+                    </p>
+                    <p className="text-xs text-gray-400">{account.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium ${account.role === "admin" ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "bg-gray-100 text-gray-500"}`}
+                  >
+                    {account.role}
+                  </span>
+                  {account.role !== "admin" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setResetPasswordId(
+                            resetPasswordId === account.id ? null : account.id,
+                          );
+                          setResetPasswordValue("");
+                        }}
+                        className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                        title="Reset password"
+                      >
+                        <Key size={15} />
+                      </button>
+                      <button
+                        onClick={() => deleteAccount(account)}
+                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {resetPasswordId === account.id && (
+                <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={resetPasswordValue}
+                    onChange={(e) => setResetPasswordValue(e.target.value)}
+                    placeholder="New password (min 6 chars)"
+                    className="flex-1 px-3 py-2 rounded-lg border border-amber-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                  <button
+                    onClick={() => resetStaffPassword(account.id)}
+                    disabled={resetLoading}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium cursor-pointer disabled:opacity-60"
+                  >
+                    {resetLoading ? "..." : "Reset"}
+                  </button>
+                  <button
+                    onClick={() => setResetPasswordId(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-gray-400 mt-3 px-1">
+          {accounts.length} total —{" "}
+          {accounts.filter((a) => a.role === "admin").length} admin,{" "}
+          {accounts.filter((a) => a.role === "staff").length} staff
+        </p>
+
+        {showCreateModal && (
+          <CreateAccountModal
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={() => {
+              setShowCreateModal(false);
+              fetchData();
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ---- SALES STAFF NAMES ----
+  if (activeSection === "staff") {
+    return (
+      <div className="max-w-xl">
+        <SectionHeader
+          title="Sales Staff Names"
+          desc='Names in the "who made this sale" dropdown'
+        />
+
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={newStaffName}
+            onChange={(e) => {
+              setNewStaffName(e.target.value);
+              setStaffError("");
+            }}
+            onKeyDown={(e) => e.key === "Enter" && addStaffName()}
+            placeholder="Enter staff name..."
+            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+          />
+          <button
+            onClick={addStaffName}
+            disabled={addingStaff || !newStaffName.trim()}
+            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-2.5 px-4 rounded-xl text-sm disabled:opacity-60 cursor-pointer"
+          >
+            {addingStaff ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Plus size={16} />
+            )}{" "}
+            Add
+          </button>
+        </div>
+        {staffError && (
+          <p className="text-xs text-red-500 mb-3">{staffError}</p>
+        )}
+
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {staff.length === 0 ? (
+            <div className="flex flex-col items-center py-12">
+              <Users size={32} className="text-gray-300 mb-2" />
+              <p className="text-sm text-gray-400">No staff names added</p>
+            </div>
+          ) : (
+            <div>
+              {staff.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium ${member.is_active ? "bg-gradient-to-br from-gray-700 to-gray-900 text-white" : "bg-gray-100 text-gray-400"}`}
+                    >
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <p
+                      className={`text-sm font-medium ${member.is_active ? "text-gray-900" : "text-gray-400 line-through"}`}
+                    >
+                      {member.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleStaff(member.id, member.is_active)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${member.is_active ? "bg-green-50 text-green-600 hover:bg-green-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
+                    >
+                      {member.is_active ? "Active" : "Inactive"}
+                    </button>
+                    <button
+                      onClick={() => deleteStaff(member.id, member.name)}
+                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-gray-400 mt-3 px-1">
+          {staff.filter((s) => s.is_active).length} active of {staff.length}{" "}
+          total
+        </p>
+      </div>
+    );
+  }
+
+  return null;
 }
 
+// ---- Create Account Modal ----
 function CreateAccountModal({
   onClose,
   onSuccess,
@@ -638,7 +711,6 @@ function CreateAccountModal({
     }
     setLoading(true);
     setError("");
-
     const res = await fetch("/api/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -650,7 +722,7 @@ function CreateAccountModal({
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Failed to create account");
+      setError(data.error || "Failed");
       setLoading(false);
     } else {
       onSuccess();
@@ -660,107 +732,81 @@ function CreateAccountModal({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-        {/* Modal header with accent */}
-        <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-[var(--color-primary-light)] to-white rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-sm">
-                <UserPlus size={20} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Create staff account
-                </h2>
-                <p className="text-xs text-gray-500">
-                  They&apos;ll use these details to log in
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-xl transition-colors cursor-pointer"
-            >
-              <X size={20} />
-            </button>
-          </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Create staff account
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-xl cursor-pointer"
+          >
+            <X size={20} />
+          </button>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-1.5">
-                <User size={14} className="text-gray-400" /> Full name
-              </span>
+              Full name
             </label>
             <input
               type="text"
               value={form.name}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               placeholder="e.g. Emeka Obi"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-1.5">
-                <Mail size={14} className="text-gray-400" /> Email address
-              </span>
+              Email address
             </label>
             <input
               type="email"
               value={form.email}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, email: e.target.value }))
+                setForm((p) => ({ ...p, email: e.target.value }))
               }
               placeholder="e.g. emeka@email.com"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-1.5">
-                <Lock size={14} className="text-gray-400" /> Password
-              </span>
+              Password
             </label>
             <input
               type="text"
               value={form.password}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, password: e.target.value }))
+                setForm((p) => ({ ...p, password: e.target.value }))
               }
               placeholder="At least 6 characters"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent bg-gray-50/50"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
-              Share these login details with the staff member
+            <p className="text-xs text-gray-400 mt-1">
+              Share these details with the staff member
             </p>
           </div>
-
           {error && (
             <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
               {error}
             </div>
           )}
-
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+              className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm cursor-pointer shadow-sm"
+              className="flex-1 py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
