@@ -221,6 +221,12 @@ export default function InventoryPage() {
                         >
                           <Edit2 size={16} />
                         </button>
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="p-2 text-gray-400 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Edit2 size={16} />
+                        </button>
                       </td>
                     </tr>
                   );
