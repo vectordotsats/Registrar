@@ -421,6 +421,13 @@ export default function HistoryTab() {
           </div>
         )}
       </div>
+      {deletingSale && (
+        <DeleteSaleModal
+          sale={deletingSale}
+          onClose={() => setDeletingSale(null)}
+          onConfirm={(reason) => handleDeleteSale(deletingSale, reason)}
+        />
+      )}
     </div>
   );
 }
