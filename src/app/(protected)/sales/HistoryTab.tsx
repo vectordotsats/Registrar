@@ -128,12 +128,7 @@ export default function HistoryTab() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleDeleteSale = async (sale: SaleWithDetails) => {
-    const reason = window.prompt(
-      `Why are you deleting this sale? (${sale.invoice_number ? "Invoice #" + sale.invoice_number : "Cash sale"} — ${sale.sold_by})`,
-    );
-    if (!reason) return;
-
+  const handleDeleteSale = async (sale: SaleWithDetails, reason: string) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -153,8 +148,8 @@ export default function HistoryTab() {
       })
       .eq("id", sale.id);
 
-    // Refresh the list
     setSales((prev) => prev.filter((s) => s.id !== sale.id));
+    setDeletingSale(null);
   };
 
   const todaySales = sales.filter((s) => {
