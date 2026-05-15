@@ -377,7 +377,7 @@ export default function HistoryTab() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteSale(sale);
+                                setDeletingSale(sale);
                               }}
                               className="w-full py-2.5 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                             >
