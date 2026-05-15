@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { formatNaira, getStockStatus } from "@/lib/utils";
 import type { Product } from "@/types";
+import RestockModal from "./RestockModal";
 import {
   Plus,
   Search,
