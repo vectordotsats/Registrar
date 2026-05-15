@@ -372,6 +372,20 @@ export default function HistoryTab() {
                             </p>
                           </div>
                         </div>
+
+                        {userRole === "admin" && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSale(sale);
+                              }}
+                              className="w-full py-2.5 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                            >
+                              Delete this sale
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-3 pt-3 border-t border-gray-200">
                         <button
