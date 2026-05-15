@@ -124,6 +124,35 @@ export default function HistoryTab() {
     return matchesSearch && matchesFilter;
   });
 
+  const handleDeleteSale = async (sale: SaleWithDetails) => {
+    const reason = window.prompt(
+      `Why are you deleting this sale? (${sale.invoice_number ? "Invoice #" + sale.invoice_number : "Cash sale"} — ${sale.sold_by})`,
+    );
+    if (!reason) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", user?.id)
+      .single();
+
+    await supabase
+      .from("sales")
+      .update({
+        is_deleted: true,
+        deleted_by: profile?.name || "Admin",
+        deleted_at: new Date().toISOString(),
+        delete_reason: reason,
+      })
+      .eq("id", sale.id);
+
+    // Refresh the list
+    setSales((prev) => prev.filter((s) => s.id !== sale.id));
+  };
+
   const todaySales = sales.filter((s) => {
     const today = new Date().toDateString();
     return new Date(s.sale_date).toDateString() === today;
