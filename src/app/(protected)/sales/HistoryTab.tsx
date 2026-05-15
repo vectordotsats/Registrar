@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Trash2,
 } from "lucide-react";
 
 interface SaleWithDetails {
@@ -43,6 +44,9 @@ export default function HistoryTab() {
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("My Business");
   const [userRole, setUserRole] = useState<string>("staff");
+  const [deletingSale, setDeletingSale] = useState<SaleWithDetails | null>(
+    null,
+  );
 
   useEffect(() => {
     const loadBusiness = async () => {
