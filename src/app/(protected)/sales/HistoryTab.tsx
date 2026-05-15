@@ -42,6 +42,7 @@ export default function HistoryTab() {
   const [filter, setFilter] = useState<"all" | "cash" | "invoice">("all");
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("My Business");
+  const [userRole, setUserRole] = useState<string>("staff");
 
   useEffect(() => {
     const loadBusiness = async () => {
@@ -91,6 +92,23 @@ export default function HistoryTab() {
       setLoading(false);
     };
     fetchSales();
+  }, [supabase]);
+
+  useEffect(() => {
+    const getRole = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        if (data) setUserRole(data.role);
+      }
+    };
+    getRole();
   }, [supabase]);
 
   const filtered = sales.filter((sale) => {
