@@ -425,3 +425,82 @@ export default function HistoryTab() {
     </div>
   );
 }
+
+// Modal for confirming sale deletion and capturing reason.
+function DeleteSaleModal({
+  sale,
+  onClose,
+  onConfirm,
+}: {
+  sale: SaleWithDetails;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+        <div className="p-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <Trash2 size={24} className="text-red-500" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">
+            Delete this sale?
+          </h2>
+          <p className="text-sm text-gray-500">
+            {sale.invoice_number
+              ? `Invoice #${sale.invoice_number}`
+              : "Cash sale"}{" "}
+            — {formatNaira(sale.total_amount)} by {sale.sold_by}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            This will be hidden but kept in records for audit
+          </p>
+        </div>
+
+        <div className="px-6 pb-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for deletion *
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Duplicate entry, Customer cancelled order"
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setLoading(true);
+                onConfirm(reason);
+              }}
+              disabled={!reason.trim() || loading}
+              className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete sale"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
