@@ -88,6 +88,12 @@ export default async function DashboardPage() {
         <p className="text-gray-500 text-sm mt-1">
           Here&apos;s your business overview for today
         </p>
+        <a
+          href="/settings?section=reports"
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:underline"
+        >
+          View Reports →
+        </a>
       </div>
 
       {/* Main stat cards */}

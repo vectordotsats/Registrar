@@ -18,6 +18,7 @@ import {
   LogOut,
   Shield,
   Key,
+  FileText,
 } from "lucide-react";
 
 interface StaffMember {
@@ -40,7 +41,8 @@ type Section =
   | "business"
   | "password"
   | "accounts"
-  | "staff";
+  | "staff"
+  | "reports";
 
 export default function SettingsPage() {
   const supabase = createClient();
@@ -103,6 +105,11 @@ export default function SettingsPage() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("section") === "reports") setActiveSection("reports");
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -280,6 +287,13 @@ export default function SettingsPage() {
       label: "Sales Staff Names",
       desc: `${staff.filter((s) => s.is_active).length} active`,
       icon: <Users size={20} />,
+      show: isAdmin,
+    },
+    {
+      id: "reports" as Section,
+      label: "Reports",
+      desc: "Revenue, sales, and debt analysis",
+      icon: <FileText size={20} />,
       show: isAdmin,
     },
   ].filter((item) => item.show);
@@ -680,6 +694,15 @@ export default function SettingsPage() {
           {staff.filter((s) => s.is_active).length} active of {staff.length}{" "}
           total
         </p>
+      </div>
+    );
+  }
+
+  if (activeSection === "reports") {
+    return (
+      <div>
+        <SectionHeader title="Reports" desc="Business performance overview" />
+        <ReportsContent />
       </div>
     );
   }
