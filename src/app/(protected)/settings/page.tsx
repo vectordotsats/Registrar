@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { getBusinessId } from "@/lib/utils";
+import ReportsContent from "@/components/ui/ReportsContent";
 import {
   User,
   Building2,
