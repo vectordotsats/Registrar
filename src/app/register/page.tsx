@@ -10,9 +10,10 @@ import {
   Building2,
   Users,
   ArrowLeft,
+  Mail,
 } from "lucide-react";
 
-type Step = "choose" | "register";
+type Step = "choose" | "register" | "otp";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<Step>("choose");
@@ -29,11 +30,14 @@ export default function RegisterPage() {
     businessName: "",
   });
 
+  const [otpCode, setOtpCode] = useState("");
+  const [resending, setResending] = useState(false);
+
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !form.name.trim() ||
@@ -48,12 +52,68 @@ export default function RegisterPage() {
       setError("Password must be at least 6 characters");
       return;
     }
-
     setLoading(true);
     setError("");
 
-    // Create business + admin account via API
-    const res = await fetch("/api/register", {
+    const res = await fetch("/api/otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "send",
+        email: form.email.trim().toLowerCase(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Failed to send verification code");
+      setLoading(false);
+      return;
+    }
+    setStep("otp");
+    setLoading(false);
+  };
+
+  const handleResendOTP = async () => {
+    setResending(true);
+    setError("");
+    await fetch("/api/otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "send",
+        email: form.email.trim().toLowerCase(),
+      }),
+    });
+    setResending(false);
+    setError("New code sent!");
+    setTimeout(() => setError(""), 3000);
+  };
+
+  const handleVerifyAndRegister = async () => {
+    if (otpCode.length !== 6) {
+      setError("Enter the 6-digit code");
+      return;
+    }
+    setLoading(true);
+    setError("");
+
+    const verifyRes = await fetch("/api/otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "verify",
+        email: form.email.trim().toLowerCase(),
+        code: otpCode,
+      }),
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) {
+      setError(verifyData.error || "Invalid code");
+      setLoading(false);
+      return;
+    }
+
+    const registerRes = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -63,39 +123,32 @@ export default function RegisterPage() {
         businessName: form.businessName.trim(),
       }),
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error || "Failed to create account");
+    const registerData = await registerRes.json();
+    if (!registerRes.ok) {
+      setError(registerData.error || "Failed to create account");
       setLoading(false);
       return;
     }
 
-    // Auto sign in after registration
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: form.email.trim().toLowerCase(),
       password: form.password,
     });
-
     if (signInError) {
-      setError("Account created! Please go to login page to sign in.");
+      setError("Account created! Go to login to sign in.");
       setLoading(false);
       return;
     }
-
     router.push("/dashboard");
     router.refresh();
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — branding (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 bg-[var(--color-primary)] relative overflow-hidden items-center justify-center">
         <div className="absolute top-[-80px] right-[-80px] w-64 h-64 rounded-full bg-white/5" />
         <div className="absolute bottom-[-120px] left-[-60px] w-96 h-96 rounded-full bg-white/5" />
         <div className="absolute top-1/3 left-1/4 w-32 h-32 rounded-full bg-white/5" />
-
         <div className="relative z-10 max-w-md px-12">
           <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
             <span className="text-white text-3xl font-bold">R</span>
@@ -112,9 +165,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Right panel */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
-        {/* Mobile logo */}
         <div className="lg:hidden mb-8 text-center">
           <div className="w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
             <span className="text-white text-2xl font-bold">R</span>
@@ -126,7 +177,6 @@ export default function RegisterPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          {/* Step 1: Choose role */}
           {step === "choose" && (
             <div>
               <div className="text-center mb-8">
@@ -137,7 +187,6 @@ export default function RegisterPage() {
                   How would you like to use Registrar?
                 </p>
               </div>
-
               <div className="space-y-3">
                 <button
                   onClick={() => setStep("register")}
@@ -161,7 +210,6 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 </button>
-
                 <button
                   onClick={() => router.push("/login")}
                   className="w-full bg-white rounded-2xl border-2 border-gray-200 hover:border-gray-400 p-5 text-left transition-colors cursor-pointer group"
@@ -176,13 +224,12 @@ export default function RegisterPage() {
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
                         Your admin will create your account. Go to login to sign
-                        in with your details
+                        in
                       </p>
                     </div>
                   </div>
                 </button>
               </div>
-
               <p className="text-center text-sm text-gray-500 mt-6">
                 Already have an account?{" "}
                 <button
@@ -195,7 +242,6 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 2: Registration form */}
           {step === "register" && (
             <div>
               <button
@@ -207,7 +253,6 @@ export default function RegisterPage() {
               >
                 <ArrowLeft size={16} /> Back
               </button>
-
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                 <h2 className="text-xl font-semibold text-gray-900 mb-1">
                   Create your account
@@ -215,8 +260,7 @@ export default function RegisterPage() {
                 <p className="text-sm text-gray-500 mb-8">
                   Set up your business on Registrar
                 </p>
-
-                <form onSubmit={handleRegister} className="space-y-5">
+                <form onSubmit={handleSendOTP} className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Business name
@@ -232,21 +276,19 @@ export default function RegisterPage() {
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your Name
+                      Your full name
                     </label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => updateField("name", e.target.value)}
-                      placeholder="e.g. Alhaji Musa"
+                      placeholder="e.g. Alhaji Musa Ibrahim"
                       required
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email address
@@ -260,7 +302,6 @@ export default function RegisterPage() {
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Password
@@ -289,13 +330,11 @@ export default function RegisterPage() {
                       </button>
                     </div>
                   </div>
-
                   {error && (
                     <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
                       {error}
                     </div>
                   )}
-
                   <button
                     type="submit"
                     disabled={loading}
@@ -303,16 +342,15 @@ export default function RegisterPage() {
                   >
                     {loading ? (
                       <>
-                        <Loader2 size={18} className="animate-spin" /> Creating
-                        your business...
+                        <Loader2 size={18} className="animate-spin" /> Sending
+                        verification code...
                       </>
                     ) : (
-                      "Create account"
+                      "Continue"
                     )}
                   </button>
                 </form>
               </div>
-
               <p className="text-center text-sm text-gray-500 mt-6">
                 Already have an account?{" "}
                 <button
@@ -322,6 +360,79 @@ export default function RegisterPage() {
                   Sign in
                 </button>
               </p>
+            </div>
+          )}
+
+          {step === "otp" && (
+            <div>
+              <button
+                onClick={() => {
+                  setStep("register");
+                  setError("");
+                  setOtpCode("");
+                }}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6 cursor-pointer"
+              >
+                <ArrowLeft size={16} /> Back
+              </button>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+                <div className="w-14 h-14 bg-[var(--color-primary-light)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Mail size={24} className="text-[var(--color-primary)]" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  Check your email
+                </h2>
+                <p className="text-sm text-gray-500 mb-2">
+                  We sent a 6-digit code to
+                </p>
+                <p className="text-sm font-medium text-gray-900 mb-8">
+                  {form.email}
+                </p>
+
+                <div className="space-y-5">
+                  <input
+                    type="text"
+                    value={otpCode}
+                    onChange={(e) =>
+                      setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-4 rounded-xl border border-gray-300 text-center text-2xl font-bold tracking-[0.5em] text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                  />
+                  {error && (
+                    <div
+                      className={`text-sm px-4 py-3 rounded-xl ${error === "New code sent!" ? "bg-green-50 text-green-600 border border-green-100" : "bg-red-50 text-red-600 border border-red-100"}`}
+                    >
+                      {error}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleVerifyAndRegister}
+                    disabled={loading || otpCode.length !== 6}
+                    className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm cursor-pointer"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />{" "}
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify & create account"
+                    )}
+                  </button>
+                  <p className="text-sm text-gray-500">
+                    Didn&apos;t receive it?{" "}
+                    <button
+                      onClick={handleResendOTP}
+                      disabled={resending}
+                      className="text-[var(--color-primary)] font-medium hover:underline cursor-pointer disabled:opacity-60"
+                    >
+                      {resending ? "Sending..." : "Resend code"}
+                    </button>
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
