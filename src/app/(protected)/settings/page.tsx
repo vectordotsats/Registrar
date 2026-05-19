@@ -751,7 +751,7 @@ function CreateAccountModal({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
+        username: form.username.trim(),
         password: form.password,
       }),
     });

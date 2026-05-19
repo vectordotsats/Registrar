@@ -51,6 +51,23 @@ export default function AuthProvider({
         .eq("id", user.id)
         .single();
 
+      // Auto-logout after 12 hours of inactivity
+      let inactivityTimer: NodeJS.Timeout;
+      const TIMEOUT = 12 * 60 * 60 * 1000; // 12 hours
+
+      const resetTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(async () => {
+          await supabase.auth.signOut();
+          window.location.href = "/login";
+        }, TIMEOUT);
+      };
+
+      window.addEventListener("mousemove", resetTimer);
+      window.addEventListener("keydown", resetTimer);
+      window.addEventListener("touchstart", resetTimer);
+      resetTimer();
+
       let businessName = "Registrar";
       if (profile?.business_id) {
         const { data: biz } = await supabase
