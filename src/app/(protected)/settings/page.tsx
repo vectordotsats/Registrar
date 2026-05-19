@@ -69,6 +69,7 @@ export default function SettingsPage() {
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", username: "", password: "" });
 
   const fetchData = async () => {
     const [staffRes, accountsRes] = await Promise.all([
