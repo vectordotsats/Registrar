@@ -21,22 +21,37 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    let loginEmail = email;
+
+    // If username mode, look up the internal email first
+    if (loginMode === "username") {
+      const res = await fetch("/api/auth/username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Username not found");
+        setLoading(false);
+        return;
+      }
+      loginEmail = data.email;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
       password,
     });
 
-    if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Wrong email or password. Try again."
-          : error.message,
-      );
+    if (signInError) {
+      setError("Invalid credentials");
       setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+      return;
     }
+
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (
