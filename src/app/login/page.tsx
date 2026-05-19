@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
+  const [loginMode, setLoginMode] = useState<"email" | "username">("email");
+  const [username, setUsername] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
