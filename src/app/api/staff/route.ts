@@ -3,7 +3,6 @@ import { createClient as createServerClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  // Verify the requesting user is an admin
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -21,44 +20,63 @@ export async function POST(request: Request) {
   }
 
   const businessId = profile?.business_id;
+  const { name, username, password } = await request.json();
 
-  // Parse request body
-  const { name, email, password } = await request.json();
-
-  if (!name || !email || !password) {
-    return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
+  if (!name || !username || !password) {
+    return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
   }
 
   if (password.length < 6) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  // Use service role client to create the auth user
+  if (username.length < 3) {
+    return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
+  }
+
+  // Check if username already exists
+  const { data: existing } = await supabase
+    .from("users")
+    .select("id")
+    .eq("username", username.trim().toLowerCase())
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    return NextResponse.json({ error: "Username already taken" }, { status: 400 });
+  }
+
+  // Generate internal email for Supabase auth (user never sees this)
+  const internalEmail = `${username.trim().toLowerCase()}.${businessId}@registrar.internal`;
+
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Create auth user with metadata
   const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-    email,
+    email: internalEmail,
     password,
     email_confirm: true,
-    user_metadata: { name, role: "staff", business_id: businessId },
+    user_metadata: { name: name.trim(), role: "staff", business_id: businessId, username: username.trim().toLowerCase() },
   });
 
   if (createError) {
     return NextResponse.json({ error: createError.message }, { status: 400 });
   }
 
-  // Also add to staff_members table for the sales dropdown
+  // Update the username on the users table
+  await adminClient
+    .from("users")
+    .update({ username: username.trim().toLowerCase() })
+    .eq("id", newUser.user.id);
+
+  // Add to staff_members for the sales dropdown
   await supabase.from("staff_members").insert({ name: name.trim(), business_id: businessId });
 
   return NextResponse.json({ success: true, user_id: newUser.user.id });
 }
 
-// DELETE — remove staff account
 export async function DELETE(request: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
