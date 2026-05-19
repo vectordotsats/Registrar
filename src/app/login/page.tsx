@@ -79,24 +79,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Login mode toggle */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
-        <button
-          type="button"
-          onClick={() => setLoginMode("email")}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "email" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
-        >
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => setLoginMode("username")}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "username" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
-        >
-          Username
-        </button>
-      </div>
-
       {/* Right panel — login form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
         {/* Mobile logo (hidden on desktop) */}
@@ -118,6 +100,24 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500 mb-8">
               Sign in to your account
             </p>
+
+            {/* Login mode toggle */}
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => setLoginMode("email")}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "email" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+              >
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMode("username")}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "username" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+              >
+                Username
+              </button>
+            </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
               {/* Email */}

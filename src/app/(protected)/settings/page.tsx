@@ -389,28 +389,21 @@ export default function SettingsPage() {
         <SectionHeader title="My Profile" desc="Update your personal details" />
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
               Username
             </label>
             <input
               type="text"
-              value={form.username}
-              onChange={(e) =>
-                setForm((p) => ({
-                  ...p,
-                  username: e.target.value.toLowerCase().replace(/\s/g, ""),
-                }))
-              }
-              placeholder="e.g. emeka"
-              required
-              className="..."
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1">
               Staff will use this to log in
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
               Email
             </label>
             <input

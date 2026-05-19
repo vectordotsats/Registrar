@@ -271,20 +271,20 @@ export default function RegisterPage() {
                       onChange={(e) =>
                         updateField("businessName", e.target.value)
                       }
-                      placeholder="e.g. Musa Distributors"
+                      placeholder="e.g. Alhaji Distributors"
                       required
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your full name
+                      Your Username
                     </label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => updateField("name", e.target.value)}
-                      placeholder="e.g. Alhaji Musa Ibrahim"
+                      placeholder="e.g. Alhaji"
                       required
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                     />
