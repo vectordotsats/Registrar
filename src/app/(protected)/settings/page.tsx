@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { getBusinessId } from "@/lib/utils";
 import ReportsContent from "@/components/ui/ReportsContent";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   User,
   Building2,
@@ -70,6 +71,11 @@ export default function SettingsPage() {
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [form, setForm] = useState({ name: "", username: "", password: "" });
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const fetchData = async () => {
     const [staffRes, accountsRes] = await Promise.all([
@@ -219,9 +225,15 @@ export default function SettingsPage() {
   };
 
   const deleteStaff = async (id: string, name: string) => {
-    if (!window.confirm(`Remove "${name}"?`)) return;
-    await supabase.from("staff_members").delete().eq("id", id);
-    fetchData();
+    setConfirmAction({
+      title: "Remove staff?",
+      message: `Remove "${name}" from the sales staff list?`,
+      onConfirm: async () => {
+        await supabase.from("staff_members").delete().eq("id", id);
+        fetchData();
+        setConfirmAction(null);
+      },
+    });
   };
 
   const deleteAccount = async (account: UserAccount) => {
