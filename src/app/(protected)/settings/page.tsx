@@ -388,6 +388,40 @@ export default function SettingsPage() {
           ))}
         </div>
 
+        {/* Dark mode toggle */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden max-w-xl mt-4">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 flex-shrink-0">
+                <Moon size={20} />
+              </div>
+              <p className="text-sm font-medium text-gray-900">Dark mode</p>
+            </div>
+            <button
+              onClick={() => {
+                const isDark =
+                  document.documentElement.classList.toggle("dark");
+                localStorage.setItem("registrar_dark_mode", isDark.toString());
+              }}
+              className={`w-12 h-7 rounded-full transition-colors cursor-pointer ${
+                typeof window !== "undefined" &&
+                document.documentElement.classList.contains("dark")
+                  ? "bg-[var(--color-primary)]"
+                  : "bg-gray-300"
+              }`}
+            >
+              <div
+                className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${
+                  typeof window !== "undefined" &&
+                  document.documentElement.classList.contains("dark")
+                    ? "translate-x-6"
+                    : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
         {/* Logout */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden max-w-xl mt-4">
           <button
