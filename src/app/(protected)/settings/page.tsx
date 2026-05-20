@@ -241,14 +241,20 @@ export default function SettingsPage() {
       alert("Cannot delete admin accounts");
       return;
     }
-    if (!window.confirm(`Delete account for "${account.name}"?`)) return;
-    const res = await fetch("/api/staff", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ auth_user_id: account.id }),
+    setConfirmAction({
+      title: "Delete account?",
+      message: `Delete login account for "${account.name}"? They will no longer be able to log in.`,
+      onConfirm: async () => {
+        const res = await fetch("/api/staff", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ auth_user_id: account.id }),
+        });
+        if (res.ok) fetchData();
+        else alert("Failed to delete");
+        setConfirmAction(null);
+      },
     });
-    if (res.ok) fetchData();
-    else alert("Failed to delete");
   };
 
   const handleLogout = async () => {
@@ -390,6 +396,17 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-red-600">Log out</p>
           </button>
         </div>
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -401,17 +418,24 @@ export default function SettingsPage() {
         <SectionHeader title="My Profile" desc="Update your personal details" />
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Username
             </label>
             <input
               type="text"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+              value={form.username}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  username: e.target.value.toLowerCase().replace(/\s/g, ""),
+                }))
+              }
+              placeholder="e.g. emeka"
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Staff will use this to log in
+              Staff will use this to log in (no spaces)
             </p>
           </div>
           <div>
@@ -437,6 +461,17 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save changes"}
           </button>
         </div>
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -470,6 +505,17 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save changes"}
           </button>
         </div>
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -510,6 +556,17 @@ export default function SettingsPage() {
             {saving ? "Changing..." : "Change password"}
           </button>
         </div>
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -620,6 +677,17 @@ export default function SettingsPage() {
             }}
           />
         )}
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -711,6 +779,17 @@ export default function SettingsPage() {
           {staff.filter((s) => s.is_active).length} active of {staff.length}{" "}
           total
         </p>
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -720,6 +799,17 @@ export default function SettingsPage() {
       <div>
         <SectionHeader title="Reports" desc="Business performance overview" />
         <ReportsContent />
+
+        {confirmAction && (
+          <ConfirmModal
+            title={confirmAction.title}
+            message={confirmAction.message}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={confirmAction.onConfirm}
+            onClose={() => setConfirmAction(null)}
+          />
+        )}
       </div>
     );
   }
@@ -737,7 +827,7 @@ function CreateAccountModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", username: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
