@@ -442,6 +442,7 @@ export default function SettingsPage() {
               Staff will use this to log in (no spaces)
             </p>
           </div>
+
           {profileEmail.includes("@registrar.internal") ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
