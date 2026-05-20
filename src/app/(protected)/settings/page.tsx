@@ -601,7 +601,11 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-gray-900">
                       {account.name}
                     </p>
-                    <p className="text-xs text-gray-400">{account.email}</p>
+                    <p className="text-xs text-gray-400">
+                      {account.email.includes("@registrar.internal")
+                        ? `@${account.email.split(".")[0]}`
+                        : account.email}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
