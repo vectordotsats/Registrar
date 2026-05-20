@@ -21,6 +21,7 @@ import {
   Shield,
   Key,
   FileText,
+  Moon,
 } from "lucide-react";
 
 interface StaffMember {
