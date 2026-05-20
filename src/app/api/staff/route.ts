@@ -20,10 +20,11 @@ export async function POST(request: Request) {
   }
 
   const businessId = profile?.business_id;
-  const { name, username, password } = await request.json();
+  const { username, password } = await request.json();
+  const name = username;
 
-  if (!name || !username || !password) {
-    return NextResponse.json({ error: "Name, username, and password are required" }, { status: 400 });
+  if (!username || !password) {
+    return NextResponse.json({ error: "Username and password are required" }, { status: 400 });
   }
 
   if (password.length < 6) {
