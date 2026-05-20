@@ -355,7 +355,11 @@ export default function SettingsPage() {
             <p className="text-base font-semibold text-gray-900">
               {profileName}
             </p>
-            <p className="text-sm text-gray-400">{profileEmail}</p>
+            <p className="text-sm text-gray-400">
+              {profileEmail.includes("@registrar.internal")
+                ? `@${profileEmail.split(".")[0]}`
+                : profileEmail}
+            </p>
             <span className="inline-block mt-1 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-[var(--color-primary-light)] text-[var(--color-primary)] capitalize">
               {userRole}
             </span>
@@ -438,20 +442,34 @@ export default function SettingsPage() {
               Staff will use this to log in (no spaces)
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={profileEmail}
-              disabled
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Email changes coming soon
-            </p>
-          </div>
+          {profileEmail.includes("@registrar.internal") ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
+              <input
+                type="text"
+                value={`@${profileEmail.split(".")[0]}`}
+                disabled
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={profileEmail}
+                disabled
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Email changes coming soon
+              </p>
+            </div>
+          )}
           {msg && <p className="text-sm text-green-600">{msg}</p>}
           <button
             onClick={saveProfile}
