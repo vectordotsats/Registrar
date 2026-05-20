@@ -403,8 +403,9 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={() => {
-                const isDark =
-                  document.documentElement.classList.toggle("dark");
+                const isDark = !darkMode;
+                setDarkMode(isDark);
+                document.documentElement.classList.toggle("dark", isDark);
                 localStorage.setItem("registrar_dark_mode", isDark.toString());
               }}
               className={`w-12 h-7 rounded-full transition-colors cursor-pointer ${
