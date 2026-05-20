@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [form, setForm] = useState({ name: "", username: "", password: "" });
   const [confirmAction, setConfirmAction] = useState<{
     title: string;
@@ -121,6 +122,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchData();
+
+    setDarkMode(document.documentElement.classList.contains("dark"));
   }, []);
 
   const saveProfile = async () => {
