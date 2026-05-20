@@ -45,6 +45,12 @@ export default function AuthProvider({
         return;
       }
 
+      // Load dark mode preference
+      const saved = localStorage.getItem("registrar_dark_mode");
+      if (saved === "true") {
+        document.documentElement.classList.add("dark");
+      }
+
       const { data: profile } = await supabase
         .from("users")
         .select("name, role, business_id")
