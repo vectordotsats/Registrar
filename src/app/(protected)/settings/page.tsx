@@ -827,11 +827,11 @@ function CreateAccountModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", username: "", password: "" });
+  const [form, setForm] = useState({ username: "", password: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.password) {
+    if (!form.username.trim() || !form.password) {
       setError("All fields are required");
       return;
     }
@@ -845,7 +845,6 @@ function CreateAccountModal({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: form.name.trim(),
         username: form.username.trim(),
         password: form.password,
       }),
@@ -880,8 +879,10 @@ function CreateAccountModal({
             </label>
             <input
               type="text"
-              value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              value={form.username}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, username: e.target.value }))
+              }
               placeholder="e.g. Emeka"
               required
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
