@@ -121,6 +121,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Compact cards on mobile */
+@media (max-width: 768px) {
+  .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  .text-xl {
+    font-size: 1.1rem !important;
+  }
+
+  .rounded-2xl {
+    border-radius: 0.875rem !important;
+  }
+
+  .p-5 {
+    padding: 0.75rem !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 1rem !important;
+  }
+
+  .gap-4 {
+    gap: 0.75rem !important;
+  }
+
+  .py-4 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }

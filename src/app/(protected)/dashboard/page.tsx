@@ -98,14 +98,14 @@ export default async function DashboardPage() {
 
       {/* Main stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 p-3 lg:p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
               <TrendingUp size={16} className="text-green-600" />
             </div>
           </div>
           <p className="text-xs text-gray-500 mb-1">Today&apos;s net revenue</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-lg font-bold text-gray-900 lg:text-2xl">
             {formatNaira(netRevenue)}
           </p>
           <div className="flex items-center gap-3 mt-1">
