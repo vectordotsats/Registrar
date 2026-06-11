@@ -316,7 +316,7 @@ export default function SettingsPage() {
     {
       id: "reports" as Section,
       label: "Reports",
-      desc: "Revenue, sales, and debt analysis",
+      desc: "Stock levels and movement analysis",
       icon: <FileText size={20} />,
       show: isAdmin,
     },

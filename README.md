@@ -30,7 +30,9 @@ Business management system for Nigerian retailers and distributors. Tracks inven
 
 ## Database Tables
 
-`users` `products` `customers` `sales` `sale_items` `payments` `inventory_log` `staff_members`
+`users` `products` `customers` `payments` `staff_members` `warehouses` `warehouse_stock` `stock_movements`
+
+> Warehouses migration: run `supabase/01_warehouses_migration.sql` in the Supabase SQL Editor to create the `warehouses`, `warehouse_stock`, and `stock_movements` tables.
 
 ## Setup
 

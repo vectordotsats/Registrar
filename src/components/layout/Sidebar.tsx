@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Package,
-  ShoppingCart,
+  Warehouse,
   Users,
   Settings,
   LogOut,
@@ -21,8 +20,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={22} /> },
-  { label: "Stocks", href: "/inventory", icon: <Package size={22} /> },
-  { label: "Sales", href: "/sales", icon: <ShoppingCart size={22} /> },
+  { label: "Warehouses", href: "/warehouses", icon: <Warehouse size={22} /> },
   { label: "Customers", href: "/customers", icon: <Users size={22} /> },
   { label: "Account", href: "/settings", icon: <Settings size={22} /> },
 ];

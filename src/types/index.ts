@@ -135,13 +135,48 @@ export interface PaymentFormData {
   notes: string;
 }
 
-// ---- Dashboard Stats ----
+// ---- Warehouses ----
 
-export interface DashboardStats {
-  total_revenue_today: number;
-  total_sales_today: number;
-  total_outstanding_debt: number;
-  low_stock_count: number;
-  top_debtors: Customer[];
-  recent_sales: Sale[];
+export type MovementType = "in" | "out" | "transfer" | "adjustment";
+
+export interface Warehouse {
+  id: string;
+  business_id: string | null;
+  name: string;
+  location: string;
+  created_at: string;
+}
+
+export interface WarehouseStock {
+  id: string;
+  business_id: string | null;
+  warehouse_id: string;
+  product_id: string;
+  quantity: number;
+  updated_at: string;
+  // Joined
+  product?: Product;
+  warehouse?: Warehouse;
+}
+
+export interface StockMovement {
+  id: string;
+  business_id: string | null;
+  product_id: string;
+  type: MovementType;
+  from_warehouse_id: string | null;
+  to_warehouse_id: string | null;
+  quantity: number;
+  moved_by: string;
+  notes: string;
+  created_at: string;
+  // Joined
+  product?: Product;
+  from_warehouse?: Warehouse;
+  to_warehouse?: Warehouse;
+}
+
+export interface WarehouseFormData {
+  name: string;
+  location: string;
 }

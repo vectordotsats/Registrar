@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase-server";
-import { formatNaira } from "@/lib/utils";
-import { Package, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { formatNaira, timeAgo } from "@/lib/utils";
+import { Package, Warehouse, AlertTriangle, History } from "lucide-react";
+
+const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
+  in: { label: "Stock in", color: "text-green-600 bg-green-50" },
+  out: { label: "Stock out", color: "text-red-600 bg-red-50" },
+  transfer: { label: "Transfer", color: "text-blue-600 bg-blue-50" },
+  adjustment: { label: "Adjustment", color: "text-amber-600 bg-amber-50" },
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -14,70 +21,68 @@ export default async function DashboardPage() {
     .eq("id", user?.id)
     .single();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   // Fetch all data in parallel
-  const [salesRes, productsRes, customersRes, recentSalesRes, expensesRes] =
+  const [productsRes, warehousesRes, stockRes, movementsRes] =
     await Promise.all([
       supabase
-        .from("sales")
-        .select("total_amount, amount_paid, sale_date, status")
-        .eq("is_deleted", false)
-        .gte("sale_date", today.toISOString()),
-      supabase
         .from("products")
-        .select("name, quantity_in_stock, low_stock_threshold, selling_price"),
+        .select("id, name, category, selling_price, low_stock_threshold"),
+      supabase.from("warehouses").select("id, name"),
       supabase
-        .from("customers")
-        .select("name, total_debt")
-        .gt("total_debt", 0)
-        .order("total_debt", { ascending: false })
-        .limit(5),
+        .from("warehouse_stock")
+        .select("warehouse_id, product_id, quantity"),
       supabase
-        .from("sales")
+        .from("stock_movements")
         .select(
-          "id, total_amount, amount_paid, payment_type, status, sale_date, sold_by, invoice_number, customers(name)",
+          "id, type, quantity, moved_by, created_at, product:products(name), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
         )
-        .eq("is_deleted", false)
-        .order("sale_date", { ascending: false })
-        .limit(5),
-      supabase
-        .from("expenses")
-        .select("amount, expense_date")
-        .gte("expense_date", today.toISOString()),
+        .order("created_at", { ascending: false })
+        .limit(6),
     ]);
 
-  const todaySales = salesRes.data || [];
   const products = productsRes.data || [];
-  const topDebtors = customersRes.data || [];
-  const recentSales = recentSalesRes.data || [];
-  const todayExpenses = expensesRes.data || [];
-  const todayExpenseTotal = todayExpenses.reduce(
-    (sum: number, e: { amount: number }) => sum + e.amount,
-    0,
-  );
-  const todayRevenue = todaySales.reduce(
-    (sum: number, s: { amount_paid: number }) => sum + s.amount_paid,
-    0,
-  );
-  const netRevenue = todayRevenue - todayExpenseTotal;
+  const warehouses = warehousesRes.data || [];
+  const stockRows = stockRes.data || [];
+  const movements = (movementsRes.data || []) as unknown as {
+    id: string;
+    type: string;
+    quantity: number;
+    moved_by: string;
+    created_at: string;
+    product: { name: string } | null;
+    from_warehouse: { name: string } | null;
+    to_warehouse: { name: string } | null;
+  }[];
 
-  const todaySalesCount = todaySales.length;
-  const totalOutstandingDebt = topDebtors.reduce(
-    (sum: number, c: { total_debt: number }) => sum + c.total_debt,
-    0,
-  );
+  // Aggregate stock per product across warehouses
+  const totalByProduct: Record<string, number> = {};
+  stockRows.forEach((row: { product_id: string; quantity: number }) => {
+    totalByProduct[row.product_id] =
+      (totalByProduct[row.product_id] || 0) + row.quantity;
+  });
 
-  const lowStockProducts = products.filter(
-    (p: { quantity_in_stock: number; low_stock_threshold: number }) =>
-      p.quantity_in_stock <= p.low_stock_threshold && p.quantity_in_stock > 0,
-  );
+  const totalUnits = Object.values(totalByProduct).reduce((s, q) => s + q, 0);
+
+  // Top 5 most stocked items
+  const topStocked = products
+    .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
+    .filter((p) => p.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+
+  // Low stock alerts (aggregated across warehouses)
+  const lowStockProducts = products
+    .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
+    .filter((p) => p.total <= p.low_stock_threshold && p.total > 0);
   const outOfStockProducts = products.filter(
-    (p: { quantity_in_stock: number }) => p.quantity_in_stock <= 0,
+    (p) => (totalByProduct[p.id] || 0) <= 0,
   );
 
   const isAdmin = profile?.role === "admin";
+  const stockValue = products.reduce(
+    (sum, p) => sum + p.selling_price * (totalByProduct[p.id] || 0),
+    0,
+  );
 
   return (
     <div>
@@ -86,50 +91,56 @@ export default async function DashboardPage() {
           Welcome back, {profile?.name || "there"}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Here&apos;s your business overview for today
+          Here&apos;s your stock overview
         </p>
-        <a
-          href="/settings?section=reports"
-          className="inline-flex items-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:underline"
-        >
-          View Reports →
-        </a>
+        {isAdmin && (
+          <a
+            href="/settings?section=reports"
+            className="inline-flex items-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:underline"
+          >
+            View Reports →
+          </a>
+        )}
       </div>
 
       {/* Main stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-2xl border border-gray-200 p-3 lg:p-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
-              <TrendingUp size={16} className="text-green-600" />
+            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
+              <Warehouse size={16} className="text-[var(--color-primary)]" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Today&apos;s net revenue</p>
-          <p className="text-lg font-bold text-gray-900 lg:text-2xl">
-            {formatNaira(netRevenue)}
+          <p className="text-xs text-gray-500 mb-1">Warehouses</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {warehouses.length}
           </p>
-          <div className="flex items-center gap-3 mt-1">
-            <p className="text-xs text-green-600">
-              Sales: {formatNaira(todayRevenue)}
-            </p>
-            <p className="text-xs text-red-500">
-              Expenses: -{formatNaira(todayExpenseTotal)}
-            </p>
-          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
-              <Users size={16} className="text-red-600" />
+            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
+              <Package size={16} className="text-[var(--color-primary)]" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Outstanding debt</p>
-          <p className="text-2xl font-bold text-red-600">
-            {formatNaira(totalOutstandingDebt)}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {topDebtors.length} customers
+          <p className="text-xs text-gray-500 mb-1">Total products</p>
+          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+          {isAdmin && (
+            <p className="text-xs text-gray-400 mt-1">
+              Stock value: {formatNaira(stockValue)}
+            </p>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
+              <Package size={16} className="text-green-600" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mb-1">Units in stock</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {totalUnits.toLocaleString()}
           </p>
         </div>
 
@@ -147,78 +158,38 @@ export default async function DashboardPage() {
             {outOfStockProducts.length} out of stock
           </p>
         </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
-              <Package size={16} className="text-[var(--color-primary)]" />
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mb-1">Total products</p>
-          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-          {isAdmin && (
-            <p className="text-xs text-gray-400 mt-1">
-              Stock value:{" "}
-              {formatNaira(
-                products.reduce(
-                  (
-                    sum: number,
-                    p: { selling_price: number; quantity_in_stock: number },
-                  ) => sum + p.selling_price * p.quantity_in_stock,
-                  0,
-                ),
-              )}
-            </p>
-          )}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Recent sales */}
+        {/* Top 5 most stocked items */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 mb-3">
-            Recent sales
+            Most stocked items
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            {recentSales.length === 0 ? (
+            {topStocked.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-10">
-                No sales recorded yet
+                No stock recorded yet
               </p>
             ) : (
               <div>
-                {recentSales.map((sale: Record<string, unknown>) => (
+                {topStocked.map((p, i) => (
                   <div
-                    key={sale.id as string}
-                    className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 last:border-0"
+                    key={p.id}
+                    className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {sale.invoice_number
-                          ? `Invoice #${sale.invoice_number}`
-                          : "Cash sale"}
+                    <span className="w-6 h-6 rounded-lg bg-[var(--color-primary-light)] flex items-center justify-center text-xs font-medium text-[var(--color-primary)]">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {p.name}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {(sale.customers as Record<string, string> | null)
-                          ?.name || "Walk-in"}{" "}
-                        — {sale.sold_by as string}
-                      </p>
+                      <p className="text-xs text-gray-400">{p.category}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {formatNaira(sale.total_amount as number)}
-                      </p>
-                      <span
-                        className={`text-xs font-medium ${
-                          sale.status === "paid"
-                            ? "text-green-600"
-                            : sale.status === "partial"
-                              ? "text-amber-600"
-                              : "text-red-600"
-                        }`}
-                      >
-                        {sale.status as string}
-                      </span>
-                    </div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {p.total.toLocaleString()} units
+                    </p>
                   </div>
                 ))}
               </div>
@@ -226,38 +197,60 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Top debtors */}
+        {/* Recent movements */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 mb-3">
-            Top debtors
+            Recent movements
           </h2>
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            {topDebtors.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-10">
-                No outstanding debt
-              </p>
+            {movements.length === 0 ? (
+              <div className="flex flex-col items-center py-10">
+                <History size={28} className="text-gray-300 mb-2" />
+                <p className="text-sm text-gray-400">No movements yet</p>
+              </div>
             ) : (
               <div>
-                {topDebtors.map(
-                  (debtor: { name: string; total_debt: number }) => (
+                {movements.map((m) => {
+                  const style =
+                    MOVEMENT_STYLES[m.type] || MOVEMENT_STYLES.adjustment;
+                  const route =
+                    m.type === "transfer"
+                      ? `${m.from_warehouse?.name || "?"} → ${m.to_warehouse?.name || "?"}`
+                      : m.type === "in"
+                        ? m.to_warehouse?.name || "?"
+                        : m.from_warehouse?.name || "?";
+                  return (
                     <div
-                      key={debtor.name}
+                      key={m.id}
                       className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 last:border-0"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xs font-medium">
-                          {debtor.name.charAt(0).toUpperCase()}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${style.color}`}
+                        >
+                          {style.label}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {m.product?.name || "Unknown product"}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {route}
+                            {m.moved_by ? ` — ${m.moved_by}` : ""}
+                          </p>
                         </div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {debtor.name}
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {m.quantity.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {timeAgo(m.created_at)}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold text-red-600">
-                        {formatNaira(debtor.total_debt)}
-                      </p>
                     </div>
-                  ),
-                )}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -271,23 +264,17 @@ export default async function DashboardPage() {
             </h2>
             <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-0">
-                {lowStockProducts.map(
-                  (p: {
-                    name: string;
-                    quantity_in_stock: number;
-                    low_stock_threshold: number;
-                  }) => (
-                    <div
-                      key={p.name}
-                      className="flex items-center justify-between px-4 py-3 border-b border-gray-50 sm:border-r last:border-0"
-                    >
-                      <p className="text-sm text-gray-900">{p.name}</p>
-                      <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
-                        {p.quantity_in_stock} left
-                      </span>
-                    </div>
-                  ),
-                )}
+                {lowStockProducts.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between px-4 py-3 border-b border-gray-50 sm:border-r last:border-0"
+                  >
+                    <p className="text-sm text-gray-900">{p.name}</p>
+                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                      {p.total} left
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

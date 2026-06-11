@@ -1,4 +1,4 @@
-"use client";
-
-// Re-export the existing New Sale page content as a tab component
-export { default } from "./new/page";
+// Removed — sales feature deleted. This file can be deleted entirely.
+export default function NewSaleTab() {
+  return null;
+}
