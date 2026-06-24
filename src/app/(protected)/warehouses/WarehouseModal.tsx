@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { getBusinessId } from "@/lib/utils";
 import type { Warehouse } from "@/types";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Trash2 } from "lucide-react";
 
 interface Props {
   warehouse?: Warehouse | null;
@@ -16,12 +16,30 @@ export default function WarehouseModal({ warehouse, onClose, onSuccess }: Props)
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     name: warehouse?.name || "",
     location: warehouse?.location || "",
   });
 
   const isEdit = !!warehouse;
+
+  const handleDelete = async () => {
+    if (!warehouse) return;
+    setDeleting(true);
+    setError("");
+    const { error: dbError } = await supabase
+      .from("warehouses")
+      .delete()
+      .eq("id", warehouse.id);
+    if (dbError) {
+      setError(dbError.message);
+      setDeleting(false);
+    } else {
+      onSuccess();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +121,47 @@ export default function WarehouseModal({ warehouse, onClose, onSuccess }: Props)
           {error && (
             <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
               {error}
+            </div>
+          )}
+
+          {isEdit && !confirmingDelete && (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="inline-flex items-center gap-2 text-sm font-medium text-red-500 hover:text-red-600 cursor-pointer"
+            >
+              <Trash2 size={15} /> Delete this warehouse
+            </button>
+          )}
+
+          {isEdit && confirmingDelete && (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 space-y-3">
+              <p className="text-sm text-red-600">
+                Delete <span className="font-semibold">{warehouse?.name}</span>?
+                All its stock records will be removed. This cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="flex-1 py-2 rounded-lg border border-red-200 text-xs font-medium text-red-500 hover:bg-red-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-medium cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
+                >
+                  {deleting ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={13} />
+                  )}
+                  Yes, delete
+                </button>
+              </div>
             </div>
           )}
 

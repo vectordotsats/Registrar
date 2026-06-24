@@ -117,7 +117,7 @@
 }
 
 body {
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), "DM Sans", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

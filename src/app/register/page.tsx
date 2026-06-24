@@ -159,8 +159,8 @@ export default function RegisterPage() {
             of your business.
           </h2>
           <p className="text-white/70 text-lg leading-relaxed">
-            Join thousands of Nigerian businesses tracking inventory, managing
-            credit, and growing smarter with Registrar.
+            Join Nigerian businesses tracking stock across warehouses and
+            running smarter operations with Registrar.
           </p>
         </div>
       </div>
@@ -204,8 +204,8 @@ export default function RegisterPage() {
                         I own a business
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        Create your account and start managing your inventory,
-                        sales, and staff
+                        Create your account and start managing your warehouses,
+                        stock, and staff
                       </p>
                     </div>
                   </div>

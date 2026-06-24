@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira, formatDate, getBusinessId } from "@/lib/utils";
+import { formatDate, getBusinessId } from "@/lib/utils";
 import type { Customer } from "@/types";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import {
   Search,
   Plus,
@@ -24,6 +25,9 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(
+    null,
+  );
 
   const fetchCustomers = async () => {
     const { data } = await supabase
@@ -44,21 +48,9 @@ export default function CustomersPage() {
       c.phone.includes(search),
   );
 
-  const totalDebt = customers.reduce((sum, c) => sum + c.total_debt, 0);
-  const debtorsCount = customers.filter((c) => c.total_debt > 0).length;
-
   const handleDelete = async (customer: Customer) => {
-    if (customer.total_debt > 0) {
-      alert(
-        `Cannot delete ${customer.name} — they still owe ${formatNaira(customer.total_debt)}. Clear their debt first.`,
-      );
-      return;
-    }
-    const confirmed = window.confirm(
-      `Delete customer "${customer.name}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
     await supabase.from("customers").delete().eq("id", customer.id);
+    setDeletingCustomer(null);
     fetchCustomers();
   };
 
@@ -68,7 +60,7 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Manage registered customers and track debt
+            Customers and businesses you supply to
           </p>
         </div>
         <button
@@ -81,20 +73,10 @@ export default function CustomersPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">Total customers</p>
           <p className="text-xl font-bold text-gray-900">{customers.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Customers owing</p>
-          <p className="text-xl font-bold text-amber-600">{debtorsCount}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Total outstanding</p>
-          <p className="text-xl font-bold text-red-600">
-            {formatNaira(totalDebt)}
-          </p>
         </div>
       </div>
 
@@ -155,19 +137,6 @@ export default function CustomersPage() {
                   </p>
                 </div>
 
-                <div className="text-right flex-shrink-0">
-                  {customer.total_debt > 0 ? (
-                    <>
-                      <p className="text-sm font-semibold text-red-600">
-                        {formatNaira(customer.total_debt)}
-                      </p>
-                      <p className="text-xs text-red-400">owed</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-green-600 font-medium">Clear</p>
-                  )}
-                </div>
-
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={(e) => {
@@ -181,7 +150,7 @@ export default function CustomersPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(customer);
+                      setDeletingCustomer(customer);
                     }}
                     className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                   >
@@ -212,6 +181,16 @@ export default function CustomersPage() {
             setEditingCustomer(null);
             fetchCustomers();
           }}
+        />
+      )}
+      {deletingCustomer && (
+        <ConfirmModal
+          title="Delete customer?"
+          message={`Delete "${deletingCustomer.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={() => handleDelete(deletingCustomer)}
+          onClose={() => setDeletingCustomer(null)}
         />
       )}
     </div>

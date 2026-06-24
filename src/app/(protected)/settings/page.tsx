@@ -71,6 +71,11 @@ export default function SettingsPage() {
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState("");
+  const [accountsMsg, setAccountsMsg] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [form, setForm] = useState({ name: "", username: "", password: "" });
   const [confirmAction, setConfirmAction] = useState<{
@@ -175,10 +180,11 @@ export default function SettingsPage() {
 
   const resetStaffPassword = async (staffUserId: string) => {
     if (resetPasswordValue.length < 6) {
-      alert("Password must be at least 6 characters");
+      setResetMsg("Password must be at least 6 characters");
       return;
     }
     setResetLoading(true);
+    setResetMsg("");
     const res = await fetch("/api/staff/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -189,12 +195,12 @@ export default function SettingsPage() {
       }),
     });
     if (res.ok) {
-      alert("Password reset successfully");
       setResetPasswordId(null);
       setResetPasswordValue("");
+      setAccountsMsg({ type: "success", text: "Password reset successfully" });
     } else {
       const data = await res.json();
-      alert(data.error || "Failed");
+      setResetMsg(data.error || "Failed to reset password");
     }
     setResetLoading(false);
   };
@@ -241,10 +247,7 @@ export default function SettingsPage() {
   };
 
   const deleteAccount = async (account: UserAccount) => {
-    if (account.role === "admin") {
-      alert("Cannot delete admin accounts");
-      return;
-    }
+    if (account.role === "admin") return;
     setConfirmAction({
       title: "Delete account?",
       message: `Delete login account for "${account.name}"? They will no longer be able to log in.`,
@@ -254,8 +257,15 @@ export default function SettingsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ auth_user_id: account.id }),
         });
-        if (res.ok) fetchData();
-        else alert("Failed to delete");
+        if (res.ok) {
+          fetchData();
+          setAccountsMsg({
+            type: "success",
+            text: `Account for "${account.name}" deleted`,
+          });
+        } else {
+          setAccountsMsg({ type: "error", text: "Failed to delete account" });
+        }
         setConfirmAction(null);
       },
     });
@@ -645,6 +655,18 @@ export default function SettingsPage() {
           <UserPlus size={18} /> Create staff account
         </button>
 
+        {accountsMsg && (
+          <div
+            className={`mb-4 px-4 py-3 rounded-xl text-sm border ${
+              accountsMsg.type === "success"
+                ? "bg-green-50 text-green-600 border-green-100"
+                : "bg-red-50 text-red-600 border-red-100"
+            }`}
+          >
+            {accountsMsg.text}
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           {accounts.map((account) => (
             <div key={account.id}>
@@ -680,6 +702,8 @@ export default function SettingsPage() {
                             resetPasswordId === account.id ? null : account.id,
                           );
                           setResetPasswordValue("");
+                          setResetMsg("");
+                          setAccountsMsg(null);
                         }}
                         className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                         title="Reset password"
@@ -697,7 +721,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               {resetPasswordId === account.id && (
-                <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 flex items-center gap-2">
+                <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 flex items-center gap-2 flex-wrap">
                   <input
                     type="text"
                     value={resetPasswordValue}
@@ -718,6 +742,9 @@ export default function SettingsPage() {
                   >
                     <X size={16} />
                   </button>
+                  {resetMsg && (
+                    <p className="w-full text-xs text-red-600">{resetMsg}</p>
+                  )}
                 </div>
               )}
             </div>

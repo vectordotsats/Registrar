@@ -68,13 +68,13 @@ export default function LoginPage() {
             <span className="text-white text-3xl font-bold">R</span>
           </div>
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
-            Your business,
+            Every unit,
             <br />
-            fully in control.
+            every location.
           </h2>
           <p className="text-white/70 text-lg leading-relaxed">
-            Track inventory, manage credit customers, and see exactly where your
-            money goes - all from one place.
+            Track stock across all your warehouses, record every movement, and
+            always know exactly what&apos;s where — all from one place.
           </p>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Your all in one Business Records
+            Stock &amp; warehouse management
           </p>
         </div>
 
