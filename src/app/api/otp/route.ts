@@ -2,8 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // POST — send OTP or verify OTP
 export async function POST(request: Request) {
   const body = await request.json();
@@ -34,6 +32,14 @@ export async function POST(request: Request) {
     });
 
     // Send email via Resend
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "Email service is not configured. Add RESEND_API_KEY to .env.local." },
+        { status: 500 },
+      );
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     try {
       await resend.emails.send({
         from: "Registrar <onboarding@resend.dev>",
