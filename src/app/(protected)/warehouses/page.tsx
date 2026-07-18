@@ -96,31 +96,6 @@ export default function WarehousesPage() {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    const getRole = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      // The role is written into the account's auth metadata when it's created
-      // (admin via signup, staff via "add staff"). That's the reliable source —
-      // it doesn't depend on the DB trigger that populates public.users.
-      const metaRole = (user.user_metadata?.role ||
-        user.app_metadata?.role) as string | undefined;
-      if (metaRole) {
-        setUserRole(metaRole);
-        return;
-      }
-      const { data } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (data) setUserRole(data.role);
-    };
-    getRole();
-  }, [supabase]);
-
   // ---- Derived data ----
 
   // stock[warehouse_id][product_id] = qty
