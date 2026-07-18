@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     try {
-      await resend.emails.send({
+      const { error: sendError } = await resend.emails.send({
         from: "Registrar <onboarding@resend.dev>",
         to: email.toLowerCase().trim(),
         subject: "Your verification code",
@@ -62,6 +62,14 @@ export async function POST(request: Request) {
           </div>
         `,
       });
+
+      if (sendError) {
+        console.error("Resend error:", sendError);
+        return NextResponse.json(
+          { error: sendError.message || "Failed to send verification email" },
+          { status: 500 },
+        );
+      }
 
       return NextResponse.json({ success: true });
     } catch (err) {

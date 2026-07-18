@@ -402,7 +402,7 @@ export default function WarehousesPage() {
             Track stock across your locations
           </p>
         </div>
-        {tab === "warehouses" && (
+        {tab === "warehouses" && isAdmin && (
           <button
             onClick={() => setShowWarehouseModal(true)}
             className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-2.5 px-5 rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
@@ -480,15 +480,17 @@ export default function WarehousesPage() {
                           className="text-[var(--color-primary)]"
                         />
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingWarehouse(w);
-                        }}
-                        className="p-2 text-gray-300 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                      >
-                        <Edit2 size={15} />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingWarehouse(w);
+                          }}
+                          className="p-2 text-gray-300 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                      )}
                     </div>
                     <p className="text-base font-semibold text-gray-900">
                       {w.name}
