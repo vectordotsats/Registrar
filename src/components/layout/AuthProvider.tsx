@@ -84,9 +84,14 @@ export default function AuthProvider({
         if (biz) businessName = biz.name;
       }
 
+      // Prefer the role stamped in auth metadata at account creation — it's the
+      // reliable source and doesn't depend on the DB trigger for public.users.
+      const metaRole = (user.user_metadata?.role ||
+        user.app_metadata?.role) as UserRole | undefined;
+
       setAuth({
         userName: profile?.name || user.email || "User",
-        userRole: profile?.role || "staff",
+        userRole: metaRole || profile?.role || "staff",
         businessName,
         loading: false,
       });

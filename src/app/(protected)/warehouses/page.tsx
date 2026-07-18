@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { useAuth } from "@/components/layout/AuthProvider";
 import { formatNaira, getStockStatus, timeAgo } from "@/lib/utils";
 import type { Product, StockMovement, Warehouse, WarehouseStock } from "@/types";
 import {
@@ -38,9 +39,9 @@ const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
 
 export default function WarehousesPage() {
   const supabase = createClient();
+  const { userRole } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("warehouses");
-  const [userRole, setUserRole] = useState<string>("staff");
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -100,14 +101,22 @@ export default function WarehousesPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        if (data) setUserRole(data.role);
+      if (!user) return;
+      // The role is written into the account's auth metadata when it's created
+      // (admin via signup, staff via "add staff"). That's the reliable source —
+      // it doesn't depend on the DB trigger that populates public.users.
+      const metaRole = (user.user_metadata?.role ||
+        user.app_metadata?.role) as string | undefined;
+      if (metaRole) {
+        setUserRole(metaRole);
+        return;
       }
+      const { data } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (data) setUserRole(data.role);
     };
     getRole();
   }, [supabase]);
