@@ -66,10 +66,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createError.message }, { status: 400 });
   }
 
-  // Update the username on the users table
+  // Set the username AND role on the users table.
+  // Don't rely on the DB trigger for role — write it explicitly so staff
+  // can never be mistaken for an admin.
   await adminClient
     .from("users")
-    .update({ username: username.trim().toLowerCase() })
+    .update({ username: username.trim().toLowerCase(), role: "staff" })
     .eq("id", newUser.user.id);
 
   // Add to staff_members for the sales dropdown

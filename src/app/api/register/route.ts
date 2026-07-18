@@ -53,5 +53,16 @@ export async function POST(request: Request) {
     .update({ created_by: newUser.user.id })
     .eq("id", business.id);
 
+  // 4. Make sure the owner's profile row is explicitly marked admin,
+  //    and store their username (don't depend on the DB trigger's default).
+  await adminClient
+    .from("users")
+    .update({
+      role: "admin",
+      business_id: business.id,
+      username: name.trim().toLowerCase(),
+    })
+    .eq("id", newUser.user.id);
+
   return NextResponse.json({ success: true });
 }
