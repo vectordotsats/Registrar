@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import LogoMark from "@/components/LogoMark";
 import type { UserRole } from "@/types";
 
 interface AuthContextType {
@@ -103,7 +104,7 @@ export default function AuthProvider({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-9 h-9 bg-[var(--color-primary)] rounded-xl flex items-center justify-center animate-pulse">
-          <span className="text-white text-base font-bold">R</span>
+          <LogoMark className="w-5 h-5 text-white" />
         </div>
       </div>
     );

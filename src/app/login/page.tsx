@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import LogoMark from "@/components/LogoMark";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -65,7 +66,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 max-w-md px-12">
           <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
-            <span className="text-white text-3xl font-bold">R</span>
+            <LogoMark className="w-9 h-9 text-white" />
           </div>
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
             Every unit,
@@ -84,7 +85,7 @@ export default function LoginPage() {
         {/* Mobile logo (hidden on desktop) */}
         <div className="lg:hidden mb-8 text-center">
           <div className="w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <span className="text-white text-2xl font-bold">R</span>
+            <LogoMark className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
           <p className="text-sm text-gray-500 mt-1">
