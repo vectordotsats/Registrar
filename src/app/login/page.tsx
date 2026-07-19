@@ -4,7 +4,6 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import LogoMark from "@/components/LogoMark";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -65,9 +64,11 @@ export default function LoginPage() {
         <div className="absolute top-1/3 left-1/4 w-32 h-32 rounded-full bg-white/5" />
 
         <div className="relative z-10 max-w-md px-12">
-          <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
-            <LogoMark className="w-9 h-9 text-white" />
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Registrar"
+            className="w-16 h-16 rounded-2xl mb-8"
+          />
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
             Every unit,
             <br />
@@ -84,9 +85,11 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
         {/* Mobile logo (hidden on desktop) */}
         <div className="lg:hidden mb-8 text-center">
-          <div className="w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <LogoMark className="w-8 h-8 text-white" />
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Registrar"
+            className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-sm"
+          />
           <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
           <p className="text-sm text-gray-500 mt-1">
             Stock &amp; warehouse management
@@ -106,17 +109,17 @@ export default function LoginPage() {
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
               <button
                 type="button"
-                onClick={() => setLoginMode("email")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "email" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
-              >
-                Email
-              </button>
-              <button
-                type="button"
                 onClick={() => setLoginMode("username")}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "username" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
               >
                 Username
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMode("email")}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${loginMode === "email" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
+              >
+                Email
               </button>
             </div>
 

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
@@ -36,14 +37,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={dmSans.variable} suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("registrar_dark_mode")==="true")document.documentElement.classList.add("dark")}catch(e){}`,
-          }}
-        />
-      </head>
       <body className="bg-gray-50 text-gray-900 min-h-screen">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`try{if(localStorage.getItem("registrar_dark_mode")==="true")document.documentElement.classList.add("dark")}catch(e){}`}
+        </Script>
         <ServiceWorkerRegister />
         {children}
       </body>

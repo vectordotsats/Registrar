@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import LogoMark from "@/components/LogoMark";
 import type { UserRole } from "@/types";
 
 interface AuthContextType {
@@ -103,9 +102,11 @@ export default function AuthProvider({
   if (auth.loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-9 h-9 bg-[var(--color-primary)] rounded-xl flex items-center justify-center animate-pulse">
-          <LogoMark className="w-5 h-5 text-white" />
-        </div>
+        <img
+          src="/icon.svg"
+          alt="Registrar"
+          className="w-14 h-14 rounded-2xl shadow-sm animate-pulse"
+        />
       </div>
     );
   }

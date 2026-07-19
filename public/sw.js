@@ -1,5 +1,5 @@
 // Registrar service worker — enables installability and lightweight offline caching.
-const CACHE = "registrar-v1";
+const CACHE = "registrar-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -22,12 +22,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Cache-first for immutable hashed assets and our icons.
-  if (
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname === "/icon.svg" ||
-    url.pathname === "/icon-maskable.svg"
-  ) {
+  // Cache-first for immutable hashed assets only. (Icons are intentionally
+  // NOT cached here so an updated logo shows immediately.)
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const cached = await cache.match(request);

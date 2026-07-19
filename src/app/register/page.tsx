@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   Mail,
 } from "lucide-react";
-import LogoMark from "@/components/LogoMark";
 
 type Step = "choose" | "register" | "otp";
 
@@ -151,9 +150,11 @@ export default function RegisterPage() {
         <div className="absolute bottom-[-120px] left-[-60px] w-96 h-96 rounded-full bg-white/5" />
         <div className="absolute top-1/3 left-1/4 w-32 h-32 rounded-full bg-white/5" />
         <div className="relative z-10 max-w-md px-12">
-          <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8">
-            <LogoMark className="w-9 h-9 text-white" />
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Registrar"
+            className="w-16 h-16 rounded-2xl mb-8"
+          />
           <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
             Take control
             <br />
@@ -168,9 +169,11 @@ export default function RegisterPage() {
 
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
         <div className="lg:hidden mb-8 text-center">
-          <div className="w-14 h-14 bg-[var(--color-primary)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <LogoMark className="w-8 h-8 text-white" />
-          </div>
+          <img
+            src="/icon.svg"
+            alt="Registrar"
+            className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-sm"
+          />
           <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
           <p className="text-sm text-gray-500 mt-1">
             Business management made simple
