@@ -30,12 +30,16 @@ export default function ProductsPage() {
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [productsRes, stockRes] = await Promise.all([
+    const [productsRes, stockRes, warehousesRes] = await Promise.all([
       supabase.from("products").select("*").order("name"),
-      supabase.from("warehouse_stock").select("product_id, quantity"),
+      supabase
+        .from("warehouse_stock")
+        .select("warehouse_id, product_id, quantity"),
+      supabase.from("warehouses").select("id, name, location").order("name"),
     ]);
     setProducts(productsRes.data || []);
     setStockRows(stockRes.data || []);
+    setWarehouses(warehousesRes.data || []);
     setLoading(false);
   }, [supabase]);
 
@@ -48,6 +52,26 @@ export default function ProductsPage() {
   stockRows.forEach((row) => {
     totalByProduct[row.product_id] =
       (totalByProduct[row.product_id] || 0) + row.quantity;
+  });
+
+  // Which warehouse holds how much of each product
+  const warehouseById: Record<
+    string,
+    { id: string; name: string; location: string }
+  > = {};
+  warehouses.forEach((w) => (warehouseById[w.id] = w));
+  const locationsByProduct: Record<string, ProductLocation[]> = {};
+  stockRows.forEach((row) => {
+    const w = warehouseById[row.warehouse_id];
+    if (!w) return;
+    if (!locationsByProduct[row.product_id])
+      locationsByProduct[row.product_id] = [];
+    locationsByProduct[row.product_id].push({
+      id: w.id,
+      name: w.name,
+      location: w.location,
+      quantity: row.quantity,
+    });
   });
 
   const filteredProducts = products.filter(
@@ -168,7 +192,8 @@ export default function ProductsPage() {
                   return (
                     <tr
                       key={product.id}
-                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      onClick={() => setViewingProduct(product)}
+                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
                     >
                       <td className="py-3.5 px-4">
                         <p className="font-medium text-gray-900">
@@ -204,10 +229,24 @@ export default function ProductsPage() {
                           {status.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <button
-                          onClick={() => setEditingProduct(product)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingProduct(product);
+                          }}
                           className="p-2 text-gray-400 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer"
+                          title="Where is it?"
+                        >
+                          <MapPin size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                          }}
+                          className="p-2 text-gray-400 hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded-lg transition-colors cursor-pointer"
+                          title="Edit product"
                         >
                           <Edit2 size={16} />
                         </button>
@@ -226,6 +265,13 @@ export default function ProductsPage() {
           product={editingProduct}
           onClose={closeModal}
           onSuccess={onSuccess}
+        />
+      )}
+      {viewingProduct && (
+        <ProductLocationsModal
+          product={viewingProduct}
+          locations={locationsByProduct[viewingProduct.id] || []}
+          onClose={() => setViewingProduct(null)}
         />
       )}
     </div>
