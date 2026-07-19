@@ -60,15 +60,9 @@ export default function WelcomePage() {
 
   const finish = async () => {
     setFinishing(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from("users")
-        .update({ has_onboarded: true })
-        .eq("id", user.id);
-    }
+    // Mark onboarding complete via the server (service role) so it's reliable
+    // regardless of row-level security on the users table.
+    await fetch("/api/onboarding", { method: "POST" }).catch(() => {});
     router.push("/dashboard");
   };
 

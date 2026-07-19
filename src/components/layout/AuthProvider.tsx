@@ -89,6 +89,20 @@ export default function AuthProvider({
       const metaRole = (user.user_metadata?.role ||
         user.app_metadata?.role) as UserRole | undefined;
 
+      // Onboarding guard: send brand-new owners to the welcome screen once.
+      // Resilient — if the has_onboarded column doesn't exist yet, this no-ops.
+      if ((metaRole || profile?.role) === "admin") {
+        const { data: onboard } = await supabase
+          .from("users")
+          .select("has_onboarded")
+          .eq("id", user.id)
+          .single();
+        if (onboard && onboard.has_onboarded === false) {
+          window.location.href = "/welcome";
+          return;
+        }
+      }
+
       setAuth({
         userName: profile?.name || user.email || "User",
         userRole: metaRole || profile?.role || "staff",
