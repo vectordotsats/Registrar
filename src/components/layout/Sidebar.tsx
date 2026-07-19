@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Warehouse,
+  Package,
   Truck,
   Settings,
   LogOut,
@@ -22,6 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={22} /> },
   { label: "Warehouses", href: "/warehouses", icon: <Warehouse size={22} /> },
+  { label: "Products", href: "/products", icon: <Package size={22} /> },
   {
     label: "Suppliers",
     href: "/suppliers",
