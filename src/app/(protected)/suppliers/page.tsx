@@ -11,7 +11,6 @@ import { Search, Plus, Loader2, Truck, X, Edit2, Trash2 } from "lucide-react";
 interface Supplier {
   id: string;
   name: string;
-  phone: string;
   address: string;
   notes: string;
   created_at: string;
@@ -52,7 +51,6 @@ export default function SuppliersPage() {
   const filtered = suppliers.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.phone || "").includes(search) ||
       (s.notes || "").toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -105,7 +103,7 @@ export default function SuppliersPage() {
           />
           <input
             type="text"
-            placeholder="Search by name, phone or notes..."
+            placeholder="Search by name or notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
@@ -148,8 +146,7 @@ export default function SuppliersPage() {
                     {supplier.name}
                   </p>
                   <p className="text-xs text-gray-400 truncate">
-                    {supplier.phone || "No phone"}
-                    {supplier.notes ? ` — ${supplier.notes}` : ""}
+                    {supplier.notes || supplier.address || "No details yet"}
                   </p>
                 </div>
 
@@ -231,7 +228,6 @@ function SupplierModal({
   const isEdit = !!supplier;
   const [form, setForm] = useState({
     name: supplier?.name || "",
-    phone: supplier?.phone || "",
     address: supplier?.address || "",
     notes: supplier?.notes || "",
   });
@@ -250,7 +246,6 @@ function SupplierModal({
 
     const payload = {
       name: form.name.trim(),
-      phone: form.phone.trim(),
       address: form.address.trim(),
       notes: form.notes.trim(),
     };
@@ -301,18 +296,6 @@ function SupplierModal({
               onChange={(e) => updateField("name", e.target.value)}
               placeholder="e.g. Dangote Distributors"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone number
-            </label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => updateField("phone", e.target.value)}
-              placeholder="e.g. 08012345678"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
           </div>
