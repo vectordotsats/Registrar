@@ -41,20 +41,6 @@ export function timeAgo(dateString: string): string {
   return formatDate(dateString);
 }
 
-// Get sale status color
-export function getStatusColor(status: string): string {
-  switch (status) {
-    case "paid":
-      return "text-green-600 bg-green-50";
-    case "partial":
-      return "text-amber-600 bg-amber-50";
-    case "unpaid":
-      return "text-red-600 bg-red-50";
-    default:
-      return "text-gray-600 bg-gray-50";
-  }
-}
-
 // Get stock level status
 export function getStockStatus(
   quantity: number,
