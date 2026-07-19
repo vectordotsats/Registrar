@@ -53,7 +53,7 @@ export default function ReportsContent() {
   const [endDate, setEndDate] = useState(todayStr);
   const [quickPeriod, setQuickPeriod] = useState<
     "today" | "week" | "month" | "all" | "custom"
-  >("month");
+  >("today");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [products, setProducts] = useState<ProductRecord[]>([]);
@@ -88,13 +88,6 @@ export default function ReportsContent() {
     };
     load();
   }, [supabase]);
-
-  // Default to last 30 days
-  useEffect(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    setStartDate(d.toISOString().split("T")[0]);
-  }, []);
 
   const setQuick = (period: "today" | "week" | "month" | "all") => {
     setQuickPeriod(period);
