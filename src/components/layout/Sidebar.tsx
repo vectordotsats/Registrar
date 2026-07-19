@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Warehouse,
-  Users,
+  Truck,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -16,12 +16,18 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={22} /> },
   { label: "Warehouses", href: "/warehouses", icon: <Warehouse size={22} /> },
-  { label: "Customers", href: "/customers", icon: <Users size={22} /> },
+  {
+    label: "Suppliers",
+    href: "/suppliers",
+    icon: <Truck size={22} />,
+    adminOnly: true,
+  },
   { label: "Account", href: "/settings", icon: <Settings size={22} /> },
 ];
 
@@ -44,6 +50,11 @@ export default function Sidebar({
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+
+  // Hide admin-only items (e.g. Suppliers) from staff.
+  const visibleNav = navItems.filter(
+    (item) => !item.adminOnly || userRole === "admin",
+  );
 
   return (
     <>
@@ -71,7 +82,7 @@ export default function Sidebar({
 
           {/* Nav links */}
           <nav className="flex-1 px-3 py-4 space-y-1">
-            {navItems.map((item) => (
+            {visibleNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -110,7 +121,7 @@ export default function Sidebar({
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex items-center justify-around py-2">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
