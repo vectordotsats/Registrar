@@ -5,8 +5,11 @@ import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
 import { formatNaira, getStockStatus } from "@/lib/utils";
 import type { Product } from "@/types";
-import { Plus, Search, Package, Edit2, Loader2 } from "lucide-react";
+import { Plus, Search, Package, Edit2, Loader2, MapPin } from "lucide-react";
 import ProductModal from "../warehouses/ProductModal";
+import ProductLocationsModal, {
+  type ProductLocation,
+} from "./ProductLocationsModal";
 
 export default function ProductsPage() {
   const supabase = createClient();
@@ -15,12 +18,16 @@ export default function ProductsPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [stockRows, setStockRows] = useState<
-    { product_id: string; quantity: number }[]
+    { warehouse_id: string; product_id: string; quantity: number }[]
+  >([]);
+  const [warehouses, setWarehouses] = useState<
+    { id: string; name: string; location: string }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
 
   const fetchData = useCallback(async () => {
     const [productsRes, stockRes] = await Promise.all([
