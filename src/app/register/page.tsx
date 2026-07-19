@@ -139,7 +139,7 @@ export default function RegisterPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    router.push("/welcome");
     router.refresh();
   };
 
