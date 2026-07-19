@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import { getBusinessId } from "@/lib/utils";
 import ReportsContent from "@/components/ui/ReportsContent";
@@ -48,6 +49,14 @@ type Section =
   | "reports";
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const supabase = createClient();
   const [activeSection, setActiveSection] = useState<Section>(null);
   const [loading, setLoading] = useState(true);
@@ -121,10 +130,22 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("section") === "reports") setActiveSection("reports");
-  }, []);
+    // Section is driven by the URL, so the sidebar Settings icon (which goes to
+    // /settings) always returns to the settings home, wherever you came from.
+    const valid: Section[] = [
+      "profile",
+      "business",
+      "password",
+      "accounts",
+      "staff",
+      "reports",
+    ];
+    const section = searchParams.get("section") as Section;
+    setActiveSection(valid.includes(section) ? section : null);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchData();
@@ -337,7 +358,7 @@ export default function SettingsPage() {
     <div className="mb-6">
       <button
         onClick={() => {
-          setActiveSection(null);
+          router.push("/settings");
           setMsg("");
         }}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-4 cursor-pointer"
@@ -385,7 +406,7 @@ export default function SettingsPage() {
           {menuItems.map((item, i) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => router.push(`/settings?section=${item.id}`)}
               className={`w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer ${i !== menuItems.length - 1 ? "border-b border-gray-50" : ""}`}
             >
               <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 flex-shrink-0">
