@@ -137,7 +137,7 @@ export default function ProductsPage() {
                       Cost price
                     </th>
                   )}
-                  <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">
+                  <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">
                     Selling price
                   </th>
                   <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">
@@ -170,6 +170,11 @@ export default function ProductsPage() {
                         <p className="text-xs text-gray-400 md:hidden">
                           {product.category}
                         </p>
+                        <span
+                          className={`sm:hidden inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-medium ${status.color}`}
+                        >
+                          {status.label}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-gray-600 hidden md:table-cell">
                         {product.category}
@@ -179,7 +184,7 @@ export default function ProductsPage() {
                           {formatNaira(product.cost_price)}
                         </td>
                       )}
-                      <td className="py-3.5 px-4 text-right font-medium text-gray-900">
+                      <td className="py-3.5 px-4 text-right font-medium text-gray-900 hidden sm:table-cell">
                         {formatNaira(product.selling_price)}
                       </td>
                       <td className="py-3.5 px-4 text-right font-medium text-gray-900">
