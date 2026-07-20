@@ -90,6 +90,9 @@ export default function MovementModal({
         .filter((p) =>
           p.name.toLowerCase().includes(query.trim().toLowerCase()),
         )
+        // For stock out / transfer, only offer products that actually have
+        // stock in the source warehouse.
+        .filter((p) => op === "in" || !fromId || availableFor(p.id) > 0)
         .slice(0, 8)
     : [];
 
@@ -150,6 +153,16 @@ export default function MovementModal({
     if (op === "transfer") {
       if (!fromId || !toId) return "Choose both warehouses";
       if (fromId === toId) return "From and to must be different warehouses";
+    }
+    // Re-check every line against what's actually in the source (in case the
+    // source warehouse was changed after items were added).
+    if (op !== "in") {
+      for (const line of lines) {
+        const avail = stock[fromId]?.[line.productId] || 0;
+        if (line.quantity > avail) {
+          return `Only ${formatQty(avail, line.unit)} of ${line.name} in that warehouse`;
+        }
+      }
     }
     return null;
   };
