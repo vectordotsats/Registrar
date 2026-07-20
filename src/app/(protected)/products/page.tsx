@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { formatNaira, getStockStatus } from "@/lib/utils";
+import { formatNaira, formatQty, getStockStatus } from "@/lib/utils";
 import type { Product } from "@/types";
 import { Plus, Search, Package, Edit2, Loader2, MapPin } from "lucide-react";
 import ProductModal from "../warehouses/ProductModal";
@@ -219,8 +219,8 @@ export default function ProductsPage() {
                       <td className="py-3.5 px-4 text-right font-medium text-gray-900 hidden sm:table-cell">
                         {formatNaira(product.selling_price)}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-medium text-gray-900">
-                        {total.toLocaleString()}
+                      <td className="py-3.5 px-4 text-right font-medium text-gray-900 whitespace-nowrap">
+                        {formatQty(total, product.unit)}
                       </td>
                       <td className="py-3.5 px-4 text-center hidden sm:table-cell">
                         <span

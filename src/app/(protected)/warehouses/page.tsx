@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { formatNaira, getStockStatus, timeAgo } from "@/lib/utils";
+import { formatNaira, formatQty, getStockStatus, timeAgo } from "@/lib/utils";
 import type { Product, StockMovement, Warehouse, WarehouseStock } from "@/types";
 import {
   Plus,
@@ -286,8 +286,8 @@ export default function WarehousesPage() {
                         <td className="py-3.5 px-4 text-gray-600 hidden md:table-cell">
                           {product.category}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-medium text-gray-900">
-                          {qty.toLocaleString()}
+                        <td className="py-3.5 px-4 text-right font-medium text-gray-900 whitespace-nowrap">
+                          {formatQty(qty, product.unit)}
                         </td>
                         <td className="py-3.5 px-4 text-center hidden sm:table-cell">
                           <span

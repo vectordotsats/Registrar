@@ -38,6 +38,7 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
   const [form, setForm] = useState({
     name: product?.name || "",
     category: product?.category || "General",
+    unit: product?.unit || "",
     cost_price: product ? String(product.cost_price) : "",
     selling_price: product ? String(product.selling_price) : "",
     low_stock_threshold: product ? String(product.low_stock_threshold) : "10",
@@ -61,6 +62,7 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
     const payload = {
       name: form.name.trim(),
       category: form.category.trim() || "General",
+      unit: form.unit.trim(),
       cost_price: parseFloat(form.cost_price) || 0,
       selling_price: parseFloat(form.selling_price) || 0,
       low_stock_threshold: parseInt(form.low_stock_threshold) || 10,
@@ -128,6 +130,23 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
               placeholder="e.g. Grains, Beverages, Electronics"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Unit <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={form.unit}
+              onChange={(e) => updateField("unit", e.target.value)}
+              placeholder="e.g. bag, carton, pack"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              How you count this product. Leave blank to just use
+              &quot;units&quot;.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

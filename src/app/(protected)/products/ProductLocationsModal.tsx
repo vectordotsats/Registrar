@@ -23,6 +23,8 @@ export default function ProductLocationsModal({
     .filter((l) => l.quantity > 0)
     .sort((a, b) => b.quantity - a.quantity);
   const total = stocked.reduce((s, l) => s + l.quantity, 0);
+  const unitLabel =
+    product.unit && product.unit.trim() ? product.unit.trim() : "units";
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -49,7 +51,7 @@ export default function ProductLocationsModal({
               {total.toLocaleString()}
             </span>
             <span className="text-sm text-gray-500">
-              in total across{" "}
+              {unitLabel} across{" "}
               {stocked.length === 1
                 ? "1 warehouse"
                 : `${stocked.length} warehouses`}
