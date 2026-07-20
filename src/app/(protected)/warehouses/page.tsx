@@ -112,9 +112,10 @@ export default function WarehousesPage() {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
     null,
   );
-  const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [modalProductId, setModalProductId] = useState<string | undefined>();
+  const [movement, setMovement] = useState<{
+    op: "in" | "out" | "transfer";
+    productId?: string;
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     const [warehousesRes, productsRes, stockRes, movementsRes, staffRes] =
@@ -164,9 +165,7 @@ export default function WarehousesPage() {
   const closeModals = () => {
     setShowWarehouseModal(false);
     setEditingWarehouse(null);
-    setShowAdjustModal(false);
-    setShowTransferModal(false);
-    setModalProductId(undefined);
+    setMovement(null);
   };
 
   const onModalSuccess = () => {
@@ -225,14 +224,14 @@ export default function WarehousesPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAdjustModal(true)}
+              onClick={() => setMovement({ op: "in" })}
               className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-2.5 px-4 rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
             >
               <ArrowDownToLine size={16} /> Stock in / out
             </button>
             {warehouses.length > 1 && (
               <button
-                onClick={() => setShowTransferModal(true)}
+                onClick={() => setMovement({ op: "transfer" })}
                 className="inline-flex items-center gap-2 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-xl transition-colors text-sm cursor-pointer"
               >
                 <ArrowRightLeft size={16} /> Transfer
@@ -352,10 +351,9 @@ export default function WarehousesPage() {
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <button
-                            onClick={() => {
-                              setModalProductId(product.id);
-                              setShowAdjustModal(true);
-                            }}
+                            onClick={() =>
+                              setMovement({ op: "in", productId: product.id })
+                            }
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
                             title="Stock in / out"
                           >
@@ -363,10 +361,12 @@ export default function WarehousesPage() {
                           </button>
                           {warehouses.length > 1 && (
                             <button
-                              onClick={() => {
-                                setModalProductId(product.id);
-                                setShowTransferModal(true);
-                              }}
+                              onClick={() =>
+                                setMovement({
+                                  op: "transfer",
+                                  productId: product.id,
+                                })
+                              }
                               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                               title="Transfer"
                             >
@@ -383,25 +383,15 @@ export default function WarehousesPage() {
           )}
         </div>
 
-        {showAdjustModal && (
-          <AdjustStockModal
-            warehouse={selectedWarehouse}
-            products={products}
-            staff={staff}
-            currentQty={stockMap[selectedWarehouse.id] || {}}
-            defaultProductId={modalProductId}
-            onClose={closeModals}
-            onSuccess={onModalSuccess}
-          />
-        )}
-        {showTransferModal && (
-          <TransferModal
+        {movement && (
+          <MovementModal
             warehouses={warehouses}
             products={products}
             staff={staff}
             stock={stockMap}
-            defaultFromId={selectedWarehouse.id}
-            defaultProductId={modalProductId}
+            defaultOperation={movement.op}
+            defaultWarehouseId={selectedWarehouse.id}
+            defaultProductId={movement.productId}
             onClose={closeModals}
             onSuccess={onModalSuccess}
           />
