@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { formatNaira, formatQty, getStockStatus, timeAgo } from "@/lib/utils";
+import { formatDate, formatNaira, formatQty, getStockStatus } from "@/lib/utils";
 import type { Product, StockMovement, Warehouse, WarehouseStock } from "@/types";
 import {
   Plus,
@@ -42,18 +42,35 @@ interface MovementGroup {
   type: string;
   fromName: string | null;
   toName: string | null;
-  movedBy: string;
+  movers: string[];
   time: string;
   items: StockMovement[];
 }
 
-// Group movements into "trips": same type + route + person, same minute.
+// Friendly day label for a movement block.
+function dayLabel(dateString: string): string {
+  const d = new Date(dateString);
+  const now = new Date();
+  const y = new Date();
+  y.setDate(now.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  if (sameDay(d, now)) return "Today";
+  if (sameDay(d, y)) return "Yesterday";
+  return formatDate(dateString);
+}
+
+// Group movements by day + route: every move along the same route on the same
+// calendar day (local time) sits in one block, whatever the hour.
 function groupMovements(movements: StockMovement[]): MovementGroup[] {
   const map = new Map<string, MovementGroup>();
   const order: string[] = [];
   for (const m of movements) {
-    const minute = (m.created_at || "").slice(0, 16);
-    const key = `${m.type}|${m.from_warehouse_id || ""}|${m.to_warehouse_id || ""}|${m.moved_by || ""}|${minute}`;
+    const d = new Date(m.created_at);
+    const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const key = `${m.type}|${m.from_warehouse_id || ""}|${m.to_warehouse_id || ""}|${dayKey}`;
     let g = map.get(key);
     if (!g) {
       g = {
@@ -61,7 +78,7 @@ function groupMovements(movements: StockMovement[]): MovementGroup[] {
         type: m.type,
         fromName: m.from_warehouse?.name || null,
         toName: m.to_warehouse?.name || null,
-        movedBy: m.moved_by || "",
+        movers: [],
         time: m.created_at,
         items: [],
       };
@@ -69,6 +86,7 @@ function groupMovements(movements: StockMovement[]): MovementGroup[] {
       order.push(key);
     }
     g.items.push(m);
+    if (m.moved_by && !g.movers.includes(m.moved_by)) g.movers.push(m.moved_by);
   }
   return order.map((k) => map.get(k)!);
 }
@@ -570,7 +588,7 @@ export default function WarehousesPage() {
                         </div>
                       </div>
                       <span className="text-xs text-gray-400 flex-shrink-0">
-                        {timeAgo(g.time)}
+                        {dayLabel(g.time)}
                       </span>
                     </div>
                     {/* Items moved in this trip */}
@@ -584,9 +602,9 @@ export default function WarehousesPage() {
                         </p>
                       ))}
                     </div>
-                    {g.movedBy && (
+                    {g.movers.length > 0 && (
                       <p className="text-xs text-gray-400 mt-1.5">
-                        by {g.movedBy}
+                        by {g.movers.join(", ")}
                       </p>
                     )}
                   </div>
