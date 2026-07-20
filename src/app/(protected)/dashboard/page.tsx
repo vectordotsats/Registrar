@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
-import { formatNaira, timeAgo } from "@/lib/utils";
+import { formatNaira, formatQty, timeAgo } from "@/lib/utils";
 import { Package, Warehouse, AlertTriangle, History } from "lucide-react";
 
 const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       supabase
         .from("stock_movements")
         .select(
-          "id, type, quantity, moved_by, created_at, product:products(name), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
+          "id, type, quantity, moved_by, created_at, product:products(name, unit), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
         )
         .order("created_at", { ascending: false })
         .limit(6),
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     quantity: number;
     moved_by: string;
     created_at: string;
-    product: { name: string } | null;
+    product: { name: string; unit?: string } | null;
     from_warehouse: { name: string } | null;
     to_warehouse: { name: string } | null;
   }[];
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
                       </div>
                       <div className="text-right flex-shrink-0 ml-3">
                         <p className="text-sm font-semibold text-gray-900">
-                          {m.quantity.toLocaleString()}
+                          {formatQty(m.quantity, m.product?.unit)}
                         </p>
                         <p className="text-xs text-gray-400">
                           {timeAgo(m.created_at)}

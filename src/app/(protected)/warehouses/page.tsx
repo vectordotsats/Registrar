@@ -533,45 +533,62 @@ export default function WarehousesPage() {
             </div>
           ) : (
             <div>
-              {movements.map((m) => {
+              {movementGroups.map((g) => {
                 const style =
-                  MOVEMENT_STYLES[m.type] || MOVEMENT_STYLES.adjustment;
-                const route =
-                  m.type === "transfer"
-                    ? `${m.from_warehouse?.name || "?"} → ${m.to_warehouse?.name || "?"}`
-                    : m.type === "in"
-                      ? m.to_warehouse?.name || "?"
-                      : m.from_warehouse?.name || "?";
+                  MOVEMENT_STYLES[g.type] || MOVEMENT_STYLES.adjustment;
+                const left = g.type === "in" ? "Stock in" : g.fromName || "?";
+                const right =
+                  g.type === "out"
+                    ? "Stock out"
+                    : g.type === "adjustment"
+                      ? null
+                      : g.toName || "?";
                 return (
                   <div
-                    key={m.id}
-                    className="flex items-center justify-between px-4 py-3.5 border-b border-gray-50 last:border-0"
+                    key={g.key}
+                    className="px-4 py-3.5 border-b border-gray-50 last:border-0"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${style.color}`}
-                      >
-                        {style.label}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {m.product?.name || "Unknown product"}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate">
-                          {route}
-                          {m.moved_by ? ` — ${m.moved_by}` : ""}
-                          {m.notes ? ` · ${m.notes}` : ""}
-                        </p>
+                    {/* Route header */}
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`px-2 py-0.5 rounded-lg text-xs font-medium flex-shrink-0 ${style.color}`}
+                        >
+                          {style.label}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 min-w-0">
+                          <span className="truncate">{left}</span>
+                          {right && (
+                            <>
+                              <ArrowRight
+                                size={14}
+                                className="text-gray-400 flex-shrink-0"
+                              />
+                              <span className="truncate">{right}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
+                      <span className="text-xs text-gray-400 flex-shrink-0">
+                        {timeAgo(g.time)}
+                      </span>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-3">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {m.quantity.toLocaleString()} units
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {timeAgo(m.created_at)}
-                      </p>
+                    {/* Items moved in this trip */}
+                    <div className="space-y-1 pl-0.5">
+                      {g.items.map((m) => (
+                        <p key={m.id} className="text-sm text-gray-600">
+                          <span className="font-medium text-gray-900">
+                            {formatQty(m.quantity, m.product?.unit)}
+                          </span>{" "}
+                          of {m.product?.name || "Unknown product"}
+                        </p>
+                      ))}
                     </div>
+                    {g.movedBy && (
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        by {g.movedBy}
+                      </p>
+                    )}
                   </div>
                 );
               })}
