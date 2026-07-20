@@ -115,11 +115,13 @@ export default function ProductsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Total products</p>
-          <p className="text-xl font-bold text-gray-900">{products.length}</p>
-        </div>
+      <div className="inline-flex items-baseline gap-2 bg-white rounded-2xl border border-gray-200 px-4 py-3 mb-6">
+        <span className="text-xl font-bold text-gray-900">
+          {products.length}
+        </span>
+        <span className="text-xs text-gray-500">
+          {products.length === 1 ? "product" : "products"}
+        </span>
       </div>
 
       {/* Search */}

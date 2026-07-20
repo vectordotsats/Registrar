@@ -87,11 +87,13 @@ export default function SuppliersPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Total suppliers</p>
-          <p className="text-xl font-bold text-gray-900">{suppliers.length}</p>
-        </div>
+      <div className="inline-flex items-baseline gap-2 bg-white rounded-2xl border border-gray-200 px-4 py-3 mb-6">
+        <span className="text-xl font-bold text-gray-900">
+          {suppliers.length}
+        </span>
+        <span className="text-xs text-gray-500">
+          {suppliers.length === 1 ? "supplier" : "suppliers"}
+        </span>
       </div>
 
       {/* Search */}

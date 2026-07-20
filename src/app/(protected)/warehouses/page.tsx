@@ -335,6 +335,11 @@ export default function WarehousesPage() {
                           <p className="text-xs text-gray-400 md:hidden">
                             {product.category}
                           </p>
+                          <span
+                            className={`sm:hidden inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-medium ${status.color}`}
+                          >
+                            {status.label}
+                          </span>
                         </td>
                         <td className="py-3.5 px-4 text-gray-600 hidden md:table-cell">
                           {product.category}
