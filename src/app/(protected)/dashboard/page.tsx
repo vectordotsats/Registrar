@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase-server";
 import { formatNaira, formatQty, timeAgo } from "@/lib/utils";
-import { Package, Warehouse, AlertTriangle, History } from "lucide-react";
+import {
+  Package,
+  Warehouse,
+  AlertTriangle,
+  History,
+  PackageX,
+} from "lucide-react";
 
 const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
   in: { label: "Stock in", color: "text-green-600 bg-green-50" },
@@ -26,7 +32,7 @@ export default async function DashboardPage() {
     await Promise.all([
       supabase
         .from("products")
-        .select("id, name, category, selling_price, low_stock_threshold"),
+        .select("id, name, category, selling_price, low_stock_threshold, unit"),
       supabase.from("warehouses").select("id, name"),
       supabase
         .from("warehouse_stock")
@@ -77,6 +83,13 @@ export default async function DashboardPage() {
   const outOfStockProducts = products.filter(
     (p) => (totalByProduct[p.id] || 0) <= 0,
   );
+
+  // Everything at or below its threshold (combined across all warehouses),
+  // most depleted first. Out-of-stock included.
+  const restockList = products
+    .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
+    .filter((p) => p.total <= p.low_stock_threshold)
+    .sort((a, b) => a.total - b.total);
 
   const isAdmin = profile?.role === "admin";
   const stockValue = products.reduce(
@@ -256,26 +269,58 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Low stock alerts */}
-        {lowStockProducts.length > 0 && (
+        {/* Low / out of stock — combined across all warehouses */}
+        {restockList.length > 0 && (
           <div className="xl:col-span-2">
             <h2 className="text-sm font-semibold text-gray-900 mb-3">
-              Low stock alerts
+              Running low
             </h2>
-            <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-0">
-                {lowStockProducts.map((p) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {restockList.map((p) => {
+                const out = p.total <= 0;
+                return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between px-4 py-3 border-b border-gray-50 sm:border-r last:border-0"
+                    className={`rounded-2xl border p-4 ${
+                      out
+                        ? "border-red-200 bg-red-50/40"
+                        : "border-amber-200 bg-amber-50/40"
+                    }`}
                   >
-                    <p className="text-sm text-gray-900">{p.name}</p>
-                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
-                      {p.total} left
-                    </span>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {p.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {p.category}
+                        </p>
+                      </div>
+                      {out ? (
+                        <PackageX
+                          size={18}
+                          className="text-red-500 flex-shrink-0"
+                        />
+                      ) : (
+                        <AlertTriangle
+                          size={18}
+                          className="text-amber-500 flex-shrink-0"
+                        />
+                      )}
+                    </div>
+                    <p
+                      className={`text-lg font-bold ${
+                        out ? "text-red-600" : "text-amber-600"
+                      }`}
+                    >
+                      {out ? "Out of stock" : `${formatQty(p.total, p.unit)} left`}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      across all warehouses
+                    </p>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
         )}
