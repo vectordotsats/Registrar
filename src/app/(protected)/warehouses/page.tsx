@@ -20,8 +20,7 @@ import {
   History,
 } from "lucide-react";
 import WarehouseModal from "./WarehouseModal";
-import AdjustStockModal from "./AdjustStockModal";
-import TransferModal from "./TransferModal";
+import MovementModal from "./MovementModal";
 
 type Tab = "warehouses" | "movements";
 
