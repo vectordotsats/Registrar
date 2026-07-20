@@ -41,6 +41,12 @@ export function timeAgo(dateString: string): string {
   return formatDate(dateString);
 }
 
+// Format a quantity with its product unit (defaults to "units")
+export function formatQty(qty: number, unit?: string | null): string {
+  const label = unit && unit.trim() ? unit.trim() : "units";
+  return `${qty.toLocaleString()} ${label}`;
+}
+
 // Get stock level status
 export function getStockStatus(
   quantity: number,
