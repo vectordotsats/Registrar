@@ -13,6 +13,7 @@ import {
   Loader2,
   Warehouse as WarehouseIcon,
   ArrowLeft,
+  ArrowRight,
   ArrowDownToLine,
   ArrowRightLeft,
   MapPin,
@@ -35,6 +36,42 @@ const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
   transfer: { label: "Transfer", color: "text-blue-600 bg-blue-50" },
   adjustment: { label: "Adjustment", color: "text-amber-600 bg-amber-50" },
 };
+
+interface MovementGroup {
+  key: string;
+  type: string;
+  fromName: string | null;
+  toName: string | null;
+  movedBy: string;
+  time: string;
+  items: StockMovement[];
+}
+
+// Group movements into "trips": same type + route + person, same minute.
+function groupMovements(movements: StockMovement[]): MovementGroup[] {
+  const map = new Map<string, MovementGroup>();
+  const order: string[] = [];
+  for (const m of movements) {
+    const minute = (m.created_at || "").slice(0, 16);
+    const key = `${m.type}|${m.from_warehouse_id || ""}|${m.to_warehouse_id || ""}|${m.moved_by || ""}|${minute}`;
+    let g = map.get(key);
+    if (!g) {
+      g = {
+        key,
+        type: m.type,
+        fromName: m.from_warehouse?.name || null,
+        toName: m.to_warehouse?.name || null,
+        movedBy: m.moved_by || "",
+        time: m.created_at,
+        items: [],
+      };
+      map.set(key, g);
+      order.push(key);
+    }
+    g.items.push(m);
+  }
+  return order.map((k) => map.get(k)!);
+}
 
 export default function WarehousesPage() {
   const supabase = createClient();
@@ -71,7 +108,7 @@ export default function WarehousesPage() {
         supabase
           .from("stock_movements")
           .select(
-            "*, product:products(name), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
+            "*, product:products(name, unit), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
           )
           .order("created_at", { ascending: false })
           .limit(50),
@@ -359,6 +396,8 @@ export default function WarehousesPage() {
   // ============================================
   // Main view with tabs
   // ============================================
+  const movementGroups = groupMovements(movements);
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
