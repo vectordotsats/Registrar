@@ -167,19 +167,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
-        <div className="lg:hidden mb-8 text-center">
-          <img
-            src="/icon.svg"
-            alt="Registrar"
-            className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-sm"
-          />
-          <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Business management made simple
-          </p>
-        </div>
-
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6 py-8">
         <div className="w-full max-w-sm">
           {step === "choose" && (
             <div>
