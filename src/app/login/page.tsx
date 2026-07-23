@@ -82,19 +82,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — login form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6">
-        {/* Mobile logo (hidden on desktop) */}
-        <div className="lg:hidden mb-8 text-center">
-          <img
-            src="/icon.svg"
-            alt="Registrar"
-            className="w-14 h-14 rounded-2xl mx-auto mb-4 shadow-sm"
-          />
-          <h1 className="text-2xl font-bold text-gray-900">Registrar</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Stock &amp; warehouse management
-          </p>
-        </div>
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 px-6 py-8">
 
         <div className="w-full max-w-sm">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -212,7 +200,7 @@ export default function LoginPage() {
             Don&apos;t have an account?{" "}
             <a
               href="/register"
-              className="text-[var(--color-primary)] font-medium hover:underline"
+              className="text-[var(--color-primary)] font-bold hover:underline"
             >
               Create one
             </a>
