@@ -37,30 +37,39 @@ export default function AuthProvider({
 
   useEffect(() => {
     const load = async () => {
+      // Read the session locally (no network round-trip). The login token
+      // already carries the user's role, name and business_id.
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) {
         window.location.href = "/login";
         return;
       }
 
-      // Load dark mode preference
-      const saved = localStorage.getItem("registrar_dark_mode");
-      if (saved === "true") {
+      // Dark mode preference (local)
+      if (localStorage.getItem("registrar_dark_mode") === "true") {
         document.documentElement.classList.add("dark");
       }
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("name, role, business_id")
-        .eq("id", user.id)
-        .single();
+      const meta = user.user_metadata || {};
+      const metaRole = (meta.role ||
+        user.app_metadata?.role ||
+        "staff") as UserRole;
+      const businessId = meta.business_id as string | undefined;
+
+      // Render the app shell immediately from the token — no blocking queries.
+      setAuth({
+        userName: (meta.name as string) || user.email || "User",
+        userRole: metaRole,
+        businessName: "Registrar",
+        loading: false,
+      });
 
       // Auto-logout after 12 hours of inactivity
       let inactivityTimer: NodeJS.Timeout;
       const TIMEOUT = 12 * 60 * 60 * 1000; // 12 hours
-
       const resetTimer = () => {
         clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(async () => {
@@ -68,58 +77,52 @@ export default function AuthProvider({
           window.location.href = "/login";
         }, TIMEOUT);
       };
-
       window.addEventListener("mousemove", resetTimer);
       window.addEventListener("keydown", resetTimer);
       window.addEventListener("touchstart", resetTimer);
       resetTimer();
 
-      let businessName = "Registrar";
-      if (profile?.business_id) {
-        const { data: biz } = await supabase
+      // Business name — fetch in the background and slot it in when ready.
+      if (businessId) {
+        supabase
           .from("businesses")
           .select("name")
-          .eq("id", profile.business_id)
-          .single();
-        if (biz) businessName = biz.name;
+          .eq("id", businessId)
+          .single()
+          .then(({ data: biz }) => {
+            if (biz?.name)
+              setAuth((prev) => ({ ...prev, businessName: biz.name }));
+          });
       }
 
-      // Prefer the role stamped in auth metadata at account creation — it's the
-      // reliable source and doesn't depend on the DB trigger for public.users.
-      const metaRole = (user.user_metadata?.role ||
-        user.app_metadata?.role) as UserRole | undefined;
-
-      // Onboarding guard: send brand-new owners to the welcome screen once.
-      // Resilient — if the has_onboarded column doesn't exist yet, this no-ops.
-      if ((metaRole || profile?.role) === "admin") {
-        const { data: onboard } = await supabase
+      // Onboarding guard (owners only) — background; rare redirect.
+      if (metaRole === "admin") {
+        supabase
           .from("users")
           .select("has_onboarded")
           .eq("id", user.id)
-          .single();
-        if (onboard && onboard.has_onboarded === false) {
-          window.location.href = "/welcome";
-          return;
-        }
+          .single()
+          .then(({ data: onboard }) => {
+            if (
+              onboard &&
+              onboard.has_onboarded === false &&
+              window.location.pathname !== "/welcome"
+            ) {
+              window.location.href = "/welcome";
+            }
+          });
       }
-
-      setAuth({
-        userName: profile?.name || user.email || "User",
-        userRole: metaRole || profile?.role || "staff",
-        businessName,
-        loading: false,
-      });
     };
     load();
   }, [supabase]);
 
   if (auth.loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-primary)] flex items-center justify-center">
         <img
-          src="/icon.svg"
+          src="/icon-512.png"
           alt="Registrar"
-          className="w-14 h-14 rounded-2xl shadow-sm animate-pulse"
+          className="w-28 h-28 animate-pulse"
         />
       </div>
     );

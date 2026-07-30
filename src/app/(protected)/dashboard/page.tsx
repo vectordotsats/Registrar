@@ -1,4 +1,8 @@
-import { createClient } from "@/lib/supabase-server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase-browser";
+import { useAuth } from "@/components/layout/AuthProvider";
 import { formatNaira, formatQty, timeAgo } from "@/lib/utils";
 import {
   Package,
@@ -6,6 +10,7 @@ import {
   AlertTriangle,
   History,
   PackageX,
+  Loader2,
 } from "lucide-react";
 
 const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
@@ -15,68 +20,85 @@ const MOVEMENT_STYLES: Record<string, { label: string; color: string }> = {
   adjustment: { label: "Adjustment", color: "text-amber-600 bg-amber-50" },
 };
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+interface ProductRow {
+  id: string;
+  name: string;
+  category: string;
+  selling_price: number;
+  low_stock_threshold: number;
+  unit?: string;
+}
+interface Movement {
+  id: string;
+  type: string;
+  quantity: number;
+  moved_by: string;
+  created_at: string;
+  product: { name: string; unit?: string } | null;
+  from_warehouse: { name: string } | null;
+  to_warehouse: { name: string } | null;
+}
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("name, role")
-    .eq("id", user?.id)
-    .single();
+export default function DashboardPage() {
+  const supabase = createClient();
+  const { userName, userRole } = useAuth();
+  const isAdmin = userRole === "admin";
 
-  // Fetch all data in parallel
-  const [productsRes, warehousesRes, stockRes, movementsRes] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select("id, name, category, selling_price, low_stock_threshold, unit"),
-      supabase.from("warehouses").select("id, name"),
-      supabase
-        .from("warehouse_stock")
-        .select("warehouse_id, product_id, quantity"),
-      supabase
-        .from("stock_movements")
-        .select(
-          "id, type, quantity, moved_by, created_at, product:products(name, unit), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
-        )
-        .order("created_at", { ascending: false })
-        .limit(6),
-    ]);
+  const [products, setProducts] = useState<ProductRow[]>([]);
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+  const [stockRows, setStockRows] = useState<
+    { warehouse_id: string; product_id: string; quantity: number }[]
+  >([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const products = productsRes.data || [];
-  const warehouses = warehousesRes.data || [];
-  const stockRows = stockRes.data || [];
-  const movements = (movementsRes.data || []) as unknown as {
-    id: string;
-    type: string;
-    quantity: number;
-    moved_by: string;
-    created_at: string;
-    product: { name: string; unit?: string } | null;
-    from_warehouse: { name: string } | null;
-    to_warehouse: { name: string } | null;
-  }[];
+  useEffect(() => {
+    const load = async () => {
+      const [productsRes, warehousesRes, stockRes, movementsRes] =
+        await Promise.all([
+          supabase
+            .from("products")
+            .select(
+              "id, name, category, selling_price, low_stock_threshold, unit",
+            ),
+          supabase.from("warehouses").select("id, name"),
+          supabase
+            .from("warehouse_stock")
+            .select("warehouse_id, product_id, quantity"),
+          supabase
+            .from("stock_movements")
+            .select(
+              "id, type, quantity, moved_by, created_at, product:products(name, unit), from_warehouse:warehouses!stock_movements_from_warehouse_id_fkey(name), to_warehouse:warehouses!stock_movements_to_warehouse_id_fkey(name)",
+            )
+            .order("created_at", { ascending: false })
+            .limit(6),
+        ]);
+      setProducts((productsRes.data as ProductRow[]) || []);
+      setWarehouses(warehousesRes.data || []);
+      setStockRows(stockRes.data || []);
+      setMovements((movementsRes.data as unknown as Movement[]) || []);
+      setLoading(false);
+    };
+    load();
+  }, [supabase]);
 
   // Aggregate stock per product across warehouses
   const totalByProduct: Record<string, number> = {};
-  stockRows.forEach((row: { product_id: string; quantity: number }) => {
+  stockRows.forEach((row) => {
     totalByProduct[row.product_id] =
       (totalByProduct[row.product_id] || 0) + row.quantity;
   });
 
   const totalUnits = Object.values(totalByProduct).reduce((s, q) => s + q, 0);
 
-  // Top 5 most stocked items
   const topStocked = products
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
     .filter((p) => p.total > 0)
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
-  // Low stock alerts (aggregated across warehouses)
   const lowStockProducts = products
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
     .filter((p) => p.total <= p.low_stock_threshold && p.total > 0);
@@ -91,17 +113,24 @@ export default async function DashboardPage() {
     .filter((p) => p.total <= p.low_stock_threshold)
     .sort((a, b) => a.total - b.total);
 
-  const isAdmin = profile?.role === "admin";
   const stockValue = products.reduce(
     (sum, p) => sum + p.selling_price * (totalByProduct[p.id] || 0),
     0,
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={24} className="animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {profile?.name || "there"}
+          Welcome back, {userName || "there"}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           Here&apos;s your stock overview
@@ -201,7 +230,7 @@ export default async function DashboardPage() {
                       <p className="text-xs text-gray-400">{p.category}</p>
                     </div>
                     <p className="text-sm font-semibold text-gray-900">
-                      {p.total.toLocaleString()} units
+                      {formatQty(p.total, p.unit)}
                     </p>
                   </div>
                 ))}
@@ -313,7 +342,9 @@ export default async function DashboardPage() {
                         out ? "text-red-600" : "text-amber-600"
                       }`}
                     >
-                      {out ? "Out of stock" : `${formatQty(p.total, p.unit)} left`}
+                      {out
+                        ? "Out of stock"
+                        : `${formatQty(p.total, p.unit)} left`}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       across all warehouses
