@@ -74,9 +74,6 @@ function SettingsPageInner() {
   const [msg, setMsg] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newStaffName, setNewStaffName] = useState("");
-  const [addingStaff, setAddingStaff] = useState(false);
-  const [staffError, setStaffError] = useState("");
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -224,47 +221,6 @@ function SettingsPageInner() {
       setResetMsg(data.error || "Failed to reset password");
     }
     setResetLoading(false);
-  };
-
-  const addStaffName = async () => {
-    if (!newStaffName.trim()) return;
-    setAddingStaff(true);
-    setStaffError("");
-    const exists = staff.some(
-      (s) => s.name.toLowerCase() === newStaffName.trim().toLowerCase(),
-    );
-    if (exists) {
-      setStaffError("Already exists");
-      setAddingStaff(false);
-      return;
-    }
-    const businessId = await getBusinessId(supabase);
-    await supabase
-      .from("staff_members")
-      .insert({ business_id: businessId, name: newStaffName.trim() });
-    setNewStaffName("");
-    fetchData();
-    setAddingStaff(false);
-  };
-
-  const toggleStaff = async (id: string, active: boolean) => {
-    await supabase
-      .from("staff_members")
-      .update({ is_active: !active })
-      .eq("id", id);
-    fetchData();
-  };
-
-  const deleteStaff = async (id: string, name: string) => {
-    setConfirmAction({
-      title: "Remove staff?",
-      message: `Remove "${name}" from the sales staff list?`,
-      onConfirm: async () => {
-        await supabase.from("staff_members").delete().eq("id", id);
-        fetchData();
-        setConfirmAction(null);
-      },
-    });
   };
 
   const deleteAccount = async (account: UserAccount) => {
@@ -808,77 +764,31 @@ function SettingsPageInner() {
       <div className="max-w-xl">
         <SectionHeader
           title="Sales Staff Names"
-          desc='Names in the "who made this sale" dropdown'
+          desc='Names shown in the "Done by" dropdown — add or remove staff under Login Accounts'
         />
-
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newStaffName}
-            onChange={(e) => {
-              setNewStaffName(e.target.value);
-              setStaffError("");
-            }}
-            onKeyDown={(e) => e.key === "Enter" && addStaffName()}
-            placeholder="Enter staff name..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
-          />
-          <button
-            onClick={addStaffName}
-            disabled={addingStaff || !newStaffName.trim()}
-            className="inline-flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white font-medium py-2.5 px-4 rounded-xl text-sm disabled:opacity-60 cursor-pointer"
-          >
-            {addingStaff ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Plus size={16} />
-            )}{" "}
-            Add
-          </button>
-        </div>
-        {staffError && (
-          <p className="text-xs text-red-500 mb-3">{staffError}</p>
-        )}
 
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           {staff.length === 0 ? (
             <div className="flex flex-col items-center py-12">
               <Users size={32} className="text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">No staff names added</p>
+              <p className="text-sm text-gray-400">No staff yet</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Add staff under Login Accounts
+              </p>
             </div>
           ) : (
             <div>
               {staff.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
+                  className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 last:border-0"
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium ${member.is_active ? "bg-gradient-to-br from-gray-700 to-gray-900 text-white" : "bg-gray-100 text-gray-400"}`}
-                    >
-                      {member.name.charAt(0).toUpperCase()}
-                    </div>
-                    <p
-                      className={`text-sm font-medium ${member.is_active ? "text-gray-900" : "text-gray-400 line-through"}`}
-                    >
-                      {member.name}
-                    </p>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium bg-gradient-to-br from-gray-700 to-gray-900 text-white">
+                    {member.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleStaff(member.id, member.is_active)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${member.is_active ? "bg-green-50 text-green-600 hover:bg-green-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
-                    >
-                      {member.is_active ? "Active" : "Inactive"}
-                    </button>
-                    <button
-                      onClick={() => deleteStaff(member.id, member.name)}
-                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {member.name}
+                  </p>
                 </div>
               ))}
             </div>
@@ -886,20 +796,8 @@ function SettingsPageInner() {
         </div>
 
         <p className="text-xs text-gray-400 mt-3 px-1">
-          {staff.filter((s) => s.is_active).length} active of {staff.length}{" "}
-          total
+          {staff.length} {staff.length === 1 ? "name" : "names"}
         </p>
-
-        {confirmAction && (
-          <ConfirmModal
-            title={confirmAction.title}
-            message={confirmAction.message}
-            confirmLabel="Delete"
-            variant="danger"
-            onConfirm={confirmAction.onConfirm}
-            onClose={() => setConfirmAction(null)}
-          />
-        )}
       </div>
     );
   }
