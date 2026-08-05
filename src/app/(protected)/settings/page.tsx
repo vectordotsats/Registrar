@@ -223,6 +223,14 @@ function SettingsPageInner() {
     setResetLoading(false);
   };
 
+  const toggleStaff = async (id: string, active: boolean) => {
+    await supabase
+      .from("staff_members")
+      .update({ is_active: !active })
+      .eq("id", id);
+    fetchData();
+  };
+
   const deleteAccount = async (account: UserAccount) => {
     if (account.role === "admin") return;
     setConfirmAction({
@@ -781,14 +789,26 @@ function SettingsPageInner() {
               {staff.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-50 last:border-0"
+                  className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium bg-gradient-to-br from-gray-700 to-gray-900 text-white">
-                    {member.name.charAt(0).toUpperCase()}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium ${member.is_active ? "bg-gradient-to-br from-gray-700 to-gray-900 text-white" : "bg-gray-100 text-gray-400"}`}
+                    >
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <p
+                      className={`text-sm font-medium ${member.is_active ? "text-gray-900" : "text-gray-400 line-through"}`}
+                    >
+                      {member.name}
+                    </p>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {member.name}
-                  </p>
+                  <button
+                    onClick={() => toggleStaff(member.id, member.is_active)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${member.is_active ? "bg-green-50 text-green-600 hover:bg-green-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
+                  >
+                    {member.is_active ? "Active" : "Inactive"}
+                  </button>
                 </div>
               ))}
             </div>
@@ -796,7 +816,8 @@ function SettingsPageInner() {
         </div>
 
         <p className="text-xs text-gray-400 mt-3 px-1">
-          {staff.length} {staff.length === 1 ? "name" : "names"}
+          {staff.filter((s) => s.is_active).length} active of {staff.length}{" "}
+          total
         </p>
       </div>
     );
