@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { formatNaira, formatQty, timeAgo } from "@/lib/utils";
+import { formatQty, timeAgo } from "@/lib/utils";
 import {
   Package,
   Warehouse,
@@ -91,8 +91,6 @@ export default function DashboardPage() {
       (totalByProduct[row.product_id] || 0) + row.quantity;
   });
 
-  const totalUnits = Object.values(totalByProduct).reduce((s, q) => s + q, 0);
-
   const topStocked = products
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
     .filter((p) => p.total > 0)
@@ -112,11 +110,6 @@ export default function DashboardPage() {
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
     .filter((p) => p.total <= p.low_stock_threshold)
     .sort((a, b) => a.total - b.total);
-
-  const stockValue = products.reduce(
-    (sum, p) => sum + p.selling_price * (totalByProduct[p.id] || 0),
-    0,
-  );
 
   if (loading) {
     return (
@@ -146,7 +139,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main stat cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
@@ -161,29 +154,12 @@ export default function DashboardPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
-              <Package size={16} className="text-[var(--color-primary)]" />
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mb-1">Total products</p>
-          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-          {isAdmin && (
-            <p className="text-xs text-gray-400 mt-1">
-              Stock value: {formatNaira(stockValue)}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center">
               <Package size={16} className="text-green-600" />
             </div>
           </div>
-          <p className="text-xs text-gray-500 mb-1">Units in stock</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {totalUnits.toLocaleString()}
-          </p>
+          <p className="text-xs text-gray-500 mb-1">Products in stock</p>
+          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
