@@ -53,7 +53,7 @@ export default function ProductLocationsModal({
             <span className="text-sm text-gray-500">
               {unitLabel}
               {product.pack_size && product.pack_size > 1
-                ? ` · ${(total * product.pack_size).toLocaleString()} pieces`
+                ? ` × ${product.pack_size}`
                 : ""}{" "}
               across{" "}
               {stocked.length === 1

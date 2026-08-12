@@ -111,6 +111,7 @@ export default function WarehousesPage() {
     null,
   );
   const [search, setSearch] = useState("");
+  const [warehouseSearch, setWarehouseSearch] = useState("");
 
   // Modals
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
@@ -402,6 +403,11 @@ export default function WarehousesPage() {
   // Main view with tabs
   // ============================================
   const movementGroups = groupMovements(movements);
+  const filteredWarehouses = warehouses.filter(
+    (w) =>
+      w.name.toLowerCase().includes(warehouseSearch.toLowerCase()) ||
+      (w.location || "").toLowerCase().includes(warehouseSearch.toLowerCase()),
+  );
 
   return (
     <div>

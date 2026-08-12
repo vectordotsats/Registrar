@@ -47,8 +47,7 @@ export function formatQty(qty: number, unit?: string | null): string {
   return `${qty.toLocaleString()} ${label}`;
 }
 
-// Like formatQty, but appends the piece total when a pack size is set,
-// e.g. "12 cartons · 480 pieces".
+// Like formatQty, but shows the pack size when set, e.g. "12 cartons × 40".
 export function formatQtyPieces(
   qty: number,
   unit?: string | null,
@@ -56,7 +55,7 @@ export function formatQtyPieces(
 ): string {
   const base = formatQty(qty, unit);
   if (packSize && packSize > 1) {
-    return `${base} · ${(qty * packSize).toLocaleString()} pieces`;
+    return `${base} × ${packSize}`;
   }
   return base;
 }
