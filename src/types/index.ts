@@ -12,6 +12,7 @@ export interface Product {
   selling_price: number;
   low_stock_threshold: number;
   unit?: string;
+  pack_size?: number;
   created_at: string;
 }
 

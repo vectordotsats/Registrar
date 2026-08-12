@@ -39,8 +39,7 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
     name: product?.name || "",
     category: product?.category || "General",
     unit: product?.unit || "",
-    cost_price: product ? String(product.cost_price) : "",
-    selling_price: product ? String(product.selling_price) : "",
+    pack_size: product?.pack_size ? String(product.pack_size) : "",
     low_stock_threshold: product ? String(product.low_stock_threshold) : "10",
   });
 
@@ -56,6 +55,10 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
       setError("Product name is required");
       return;
     }
+    if (!form.unit.trim()) {
+      setError("Unit is required (e.g. bag, carton, piece)");
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -63,8 +66,7 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
       name: form.name.trim(),
       category: form.category.trim() || "General",
       unit: form.unit.trim(),
-      cost_price: parseFloat(form.cost_price) || 0,
-      selling_price: parseFloat(form.selling_price) || 0,
+      pack_size: parseInt(form.pack_size) || 0,
       low_stock_threshold: parseInt(form.low_stock_threshold) || 10,
     };
 
@@ -121,7 +123,7 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
+              Category <span className="text-gray-400">(optional)</span>
             </label>
             <input
               type="text"
@@ -134,56 +136,47 @@ export default function ProductModal({ product, onClose, onSuccess }: Props) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Unit <span className="text-gray-400">(optional)</span>
+              Unit *
             </label>
             <input
               type="text"
               value={form.unit}
               onChange={(e) => updateField("unit", e.target.value)}
-              placeholder="e.g. bag, carton, pack"
+              placeholder="e.g. bag, carton, piece"
+              required
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1">
-              How you count this product. Leave blank to just use
-              &quot;units&quot;.
+              How you count this product — you&apos;ll record stock in this unit.
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cost price (&#8358;){" "}
-                <span className="text-gray-400">(optional)</span>
-              </label>
-              <input
-                type="number"
-                value={form.cost_price}
-                onChange={(e) => updateField("cost_price", e.target.value)}
-                placeholder="0"
-                min="0"
-                step="0.01"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Selling price (&#8358;)
-              </label>
-              <input
-                type="number"
-                value={form.selling_price}
-                onChange={(e) => updateField("selling_price", e.target.value)}
-                placeholder="0"
-                min="0"
-                step="0.01"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
-              />
-            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Low stock alert (units)
+              Pieces per unit{" "}
+              <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="number"
+              value={form.pack_size}
+              onChange={(e) => updateField("pack_size", e.target.value)}
+              placeholder="e.g. 40"
+              min="0"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              If a {form.unit.trim() || "unit"} holds a fixed number of pieces
+              (e.g. a carton of 40), enter it and we&apos;ll show the piece total
+              too.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Low stock alert{" "}
+              <span className="text-gray-400">
+                (in {form.unit.trim() || "units"})
+              </span>
             </label>
             <input
               type="number"

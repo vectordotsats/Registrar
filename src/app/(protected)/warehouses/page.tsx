@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { formatDate, formatNaira, formatQty, getStockStatus } from "@/lib/utils";
+import {
+  formatDate,
+  formatQty,
+  formatQtyPieces,
+  getStockStatus,
+} from "@/lib/utils";
 import type { Product, StockMovement, Warehouse, WarehouseStock } from "@/types";
 import {
   Plus,
@@ -194,10 +199,6 @@ export default function WarehousesPage() {
       )
       .sort((a, b) => a.product.name.localeCompare(b.product.name));
     const totalUnits = Object.values(wStock).reduce((s, q) => s + q, 0);
-    const stockValue = Object.entries(wStock).reduce(
-      (s, [pid, qty]) => s + (productById[pid]?.selling_price || 0) * qty,
-      0,
-    );
 
     return (
       <div>
@@ -241,7 +242,7 @@ export default function WarehousesPage() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">Products stocked</p>
             <p className="text-xl font-bold text-gray-900">{rows.length}</p>
@@ -252,14 +253,6 @@ export default function WarehousesPage() {
               {totalUnits.toLocaleString()}
             </p>
           </div>
-          {isAdmin && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 mb-1">Stock value</p>
-              <p className="text-xl font-bold text-gray-900">
-                {formatNaira(stockValue)}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Search */}
@@ -345,7 +338,7 @@ export default function WarehousesPage() {
                           {product.category}
                         </td>
                         <td className="py-3.5 px-4 text-right font-medium text-gray-900 whitespace-nowrap">
-                          {formatQty(qty, product.unit)}
+                          {formatQtyPieces(qty, product.unit, product.pack_size)}
                         </td>
                         <td className="py-3.5 px-4 text-center hidden sm:table-cell">
                           <span

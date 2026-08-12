@@ -51,7 +51,11 @@ export default function ProductLocationsModal({
               {total.toLocaleString()}
             </span>
             <span className="text-sm text-gray-500">
-              {unitLabel} across{" "}
+              {unitLabel}
+              {product.pack_size && product.pack_size > 1
+                ? ` · ${(total * product.pack_size).toLocaleString()} pieces`
+                : ""}{" "}
+              across{" "}
               {stocked.length === 1
                 ? "1 warehouse"
                 : `${stocked.length} warehouses`}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { formatNaira, timeAgo } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import { Loader2, Calendar, X, Warehouse, Package } from "lucide-react";
 
 interface ProductRecord {
@@ -148,10 +148,6 @@ export default function ReportsContent() {
   });
 
   const totalUnits = Object.values(totalByProduct).reduce((s, q) => s + q, 0);
-  const totalStockValue = products.reduce(
-    (sum, p) => sum + p.selling_price * (totalByProduct[p.id] || 0),
-    0,
-  );
 
   const lowStockItems = products
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
@@ -164,11 +160,7 @@ export default function ReportsContent() {
     const productCount = Object.keys(wStock).filter(
       (pid) => wStock[pid] > 0,
     ).length;
-    const value = Object.entries(wStock).reduce((s, [pid, qty]) => {
-      const p = products.find((x) => x.id === pid);
-      return s + (p?.selling_price || 0) * qty;
-    }, 0);
-    return { ...w, units, productCount, value };
+    return { ...w, units, productCount };
   });
 
   // ---- Movement aggregations (date-filtered) ----
@@ -287,9 +279,6 @@ export default function ReportsContent() {
           <p className="text-xl font-bold text-gray-900">
             {totalUnits.toLocaleString()}
           </p>
-          <p className="text-xs text-gray-400">
-            {formatNaira(totalStockValue)} value
-          </p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <p className="text-xs text-gray-500 mb-1">Stock in (period)</p>
@@ -339,7 +328,7 @@ export default function ReportsContent() {
                 <span className="text-xs font-normal text-gray-400">units</span>
               </p>
               <p className="text-xs text-gray-400">
-                {w.productCount} products · {formatNaira(w.value)}
+                {w.productCount} products
               </p>
             </div>
           ))

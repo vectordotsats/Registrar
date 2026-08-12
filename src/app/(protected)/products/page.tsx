@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import { useAuth } from "@/components/layout/AuthProvider";
-import { formatNaira, formatQty, getStockStatus } from "@/lib/utils";
+import { formatQtyPieces, getStockStatus } from "@/lib/utils";
 import type { Product } from "@/types";
 import { Plus, Search, Package, Edit2, Loader2, MapPin } from "lucide-react";
 import ProductModal from "../warehouses/ProductModal";
@@ -13,8 +12,6 @@ import ProductLocationsModal, {
 
 export default function ProductsPage() {
   const supabase = createClient();
-  const { userRole } = useAuth();
-  const isAdmin = userRole === "admin";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [stockRows, setStockRows] = useState<
@@ -165,14 +162,6 @@ export default function ProductsPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">
                     Category
                   </th>
-                  {isAdmin && (
-                    <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider hidden lg:table-cell">
-                      Cost price
-                    </th>
-                  )}
-                  <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">
-                    Selling price
-                  </th>
                   <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">
                     Total stock
                   </th>
@@ -213,16 +202,8 @@ export default function ProductsPage() {
                       <td className="py-3.5 px-4 text-gray-600 hidden md:table-cell">
                         {product.category}
                       </td>
-                      {isAdmin && (
-                        <td className="py-3.5 px-4 text-right text-gray-600 hidden lg:table-cell">
-                          {formatNaira(product.cost_price)}
-                        </td>
-                      )}
-                      <td className="py-3.5 px-4 text-right font-medium text-gray-900 hidden sm:table-cell">
-                        {formatNaira(product.selling_price)}
-                      </td>
                       <td className="py-3.5 px-4 text-right font-medium text-gray-900 whitespace-nowrap">
-                        {formatQty(total, product.unit)}
+                        {formatQtyPieces(total, product.unit, product.pack_size)}
                       </td>
                       <td className="py-3.5 px-4 text-center hidden sm:table-cell">
                         <span
