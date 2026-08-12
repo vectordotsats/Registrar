@@ -467,8 +467,34 @@ export default function WarehousesPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {warehouses.map((w) => {
+            <>
+              {warehouses.length > 1 && (
+                <div className="mb-4">
+                  <div className="relative max-w-md">
+                    <Search
+                      size={18}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search warehouses..."
+                      value={warehouseSearch}
+                      onChange={(e) => setWarehouseSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+              {filteredWarehouses.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center py-16 px-4">
+                  <WarehouseIcon size={36} className="text-gray-300 mb-3" />
+                  <p className="text-gray-500 text-sm font-medium">
+                    No warehouses match your search
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredWarehouses.map((w) => {
                 const wStock = stockMap[w.id] || {};
                 const productCount = Object.keys(wStock).filter(
                   (pid) => wStock[pid] > 0,
@@ -523,8 +549,10 @@ export default function WarehousesPage() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
+                  })}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
