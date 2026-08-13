@@ -120,7 +120,7 @@ export default function AuthProvider({
     return (
       <div className="min-h-screen bg-[var(--color-primary)] flex items-center justify-center">
         <img
-          src="/icon-512.png"
+          src="/icon-512-nobg.png"
           alt="Registrar"
           className="w-28 h-28 animate-pulse"
         />
