@@ -122,7 +122,7 @@ export default function AuthProvider({
         <img
           src="/icon-512-nobg.png"
           alt="Registrar"
-          className="w-28 h-28 animate-pulse"
+          className="w-20 h-20 animate-pulse"
         />
       </div>
     );
