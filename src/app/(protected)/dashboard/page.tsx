@@ -100,9 +100,6 @@ export default function DashboardPage() {
   const lowStockProducts = products
     .map((p) => ({ ...p, total: totalByProduct[p.id] || 0 }))
     .filter((p) => p.total <= p.low_stock_threshold && p.total > 0);
-  const outOfStockProducts = products.filter(
-    (p) => (totalByProduct[p.id] || 0) <= 0,
-  );
 
   // Everything at or below its threshold (combined across all warehouses),
   // most depleted first. Out-of-stock included.
@@ -139,7 +136,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main stat cards */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-[var(--color-primary-light)] flex items-center justify-center">
@@ -171,9 +168,6 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-500 mb-1">Low stock</p>
           <p className="text-2xl font-bold text-amber-600">
             {lowStockProducts.length}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {outOfStockProducts.length} out of stock
           </p>
         </div>
       </div>
